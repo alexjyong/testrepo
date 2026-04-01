@@ -1,0 +1,187 @@
+/* SproutPlay - Base Styles */
+/* Kid-friendly, accessible design with large touch targets */
+
+/* ===== CSS Variables ===== */
+:root {
+  /* Bright, kid-friendly colors */
+  --color-primary: #4ECDC4;
+  --color-secondary: #FF6B6B;
+  --color-accent-1: #FFE66D;
+  --color-accent-2: #95E1D3;
+  --color-accent-3: #F38181;
+  --color-accent-4: #AA96DA;
+  
+  /* Neutral colors */
+  --color-white: #FFFFFF;
+  --color-light-gray: #F7F7F7;
+  --color-dark: #2D3436;
+  
+  /* Typography */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  --font-size-base: 16px;
+  --font-size-large: 20px;
+  --font-size-xlarge: 28px;
+  --font-size-title: 36px;
+  
+  /* Spacing */
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 20px;
+  --spacing-lg: 32px;
+  --spacing-xl: 48px;
+  
+  /* Touch targets - minimum 48dp for accessibility */
+  --touch-target-min: 48px;
+  --touch-target-comfortable: 64px;
+  
+  /* Border radius */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  
+  /* Shadows */
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+  --shadow-md: 0 4px 8px rgba(0,0,0,0.15);
+  --shadow-lg: 0 8px 16px rgba(0,0,0,0.2);
+}
+
+/* ===== Reset & Base ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  color: var(--color-dark);
+  background-color: var(--color-light-gray);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ===== App Container ===== */
+#app {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== View Management ===== */
+.view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: opacity 0.2s ease;
+}
+
+.view.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.view.hidden {
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ===== Headers ===== */
+.hub-header,
+.view-header {
+  padding: var(--spacing-lg) var(--spacing-md);
+  text-align: center;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent-2));
+  color: var(--color-white);
+  box-shadow: var(--shadow-md);
+}
+
+.hub-title {
+  font-size: var(--font-size-title);
+  font-weight: 700;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+}
+
+.view-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-height: var(--touch-target-comfortable);
+}
+
+.view-title {
+  font-size: var(--font-size-xlarge);
+  font-weight: 600;
+}
+
+/* ===== Buttons ===== */
+button {
+  font-family: var(--font-family);
+  font-size: var(--font-size-large);
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: var(--radius-md);
+  background-color: var(--color-white);
+  color: var(--color-dark);
+  cursor: pointer;
+  transition: transform 0.1s ease, background-color 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+button:active {
+  transform: scale(0.95);
+}
+
+.back-button {
+  position: absolute;
+  left: var(--spacing-md);
+  background-color: rgba(255,255,255,0.3);
+  color: var(--color-white);
+  border: 2px solid var(--color-white);
+}
+
+.back-button:active {
+  background-color: rgba(255,255,255,0.5);
+}
+
+/* ===== Touch Targets ===== */
+.touch-target {
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== Utility Classes ===== */
+.text-center {
+  text-align: center;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ===== Safe Area Insets (for notched devices) ===== */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .hub-header,
+  .view-header {
+    padding-top: calc(var(--spacing-lg) + env(safe-area-inset-top));
+  }
+}

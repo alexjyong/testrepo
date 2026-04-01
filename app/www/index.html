@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4ECDC4">
+  <meta name="color-scheme" content="light">
+  <title>SproutPlay</title>
+  
+  <!-- Base styles -->
+  <link rel="stylesheet" href="css/base.css">
+  <!-- Hub styles -->
+  <link rel="stylesheet" href="css/hub.css">
+  <!-- Settings styles -->
+  <link rel="stylesheet" href="css/settings.css">
+</head>
+<body>
+  <!-- Main App Container -->
+  <div id="app">
+    <!-- Hub Launcher View -->
+    <main id="hub-view" class="view active">
+      <header class="hub-header">
+        <h1 class="hub-title">SproutPlay</h1>
+      </header>
+      
+      <!-- App Grid -->
+      <div id="app-grid" class="app-grid">
+        <!-- App icons will be injected here by JavaScript -->
+      </div>
+      
+      <!-- Settings trigger (long-press corner) -->
+      <div id="settings-trigger" class="settings-trigger"></div>
+    </main>
+    
+    <!-- Placeholder View (for future mini-apps) -->
+    <main id="placeholder-view" class="view hidden">
+      <header class="view-header">
+        <button id="placeholder-back" class="back-button" aria-label="Back">
+          ← Back
+        </button>
+        <h2 id="placeholder-title" class="view-title">App Name</h2>
+      </header>
+      <div class="placeholder-content">
+        <div class="placeholder-icon">🚀</div>
+        <h3>Coming Soon!</h3>
+        <p>This fun app is being built just for you!</p>
+      </div>
+    </main>
+    
+    <!-- Settings View -->
+    <main id="settings-view" class="view hidden">
+      <header class="view-header">
+        <button id="settings-back" class="back-button" aria-label="Back">
+          ← Back
+        </button>
+        <h2 class="view-title">Settings</h2>
+      </header>
+      <div class="settings-content">
+        <div class="settings-section">
+          <h3>Parental Controls</h3>
+          <label class="settings-toggle">
+            <span class="toggle-label">Parental Gate</span>
+            <input type="checkbox" id="parental-gate-toggle" class="toggle-input">
+            <span class="toggle-switch"></span>
+            <span class="toggle-description">Prevent accidental exits</span>
+          </label>
+        </div>
+        
+        <div class="settings-section">
+          <h3>About</h3>
+          <p class="settings-info">SproutPlay v0.0.1</p>
+          <p class="settings-info">Made with ❤️ for kids</p>
+        </div>
+      </div>
+    </main>
+  </div>
+  
+  <!-- Scripts -->
+  <script src="js/registry.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/router.js"></script>
+  <script src="js/gesture.js"></script>
+  <script src="js/hub.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

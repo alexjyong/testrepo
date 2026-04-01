@@ -1,0 +1,232 @@
+/* SproutPlay - Hub Launcher Styles */
+
+/* ===== App Grid ===== */
+.app-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-auto-rows: 1fr;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  overflow-y: auto;
+  background: linear-gradient(180deg, var(--color-light-gray) 0%, #E8F8F5 100%);
+}
+
+/* ===== App Card ===== */
+.app-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  min-height: 160px;
+  position: relative;
+  overflow: hidden;
+}
+
+.app-card:active {
+  transform: scale(0.92);
+  box-shadow: var(--shadow-sm);
+}
+
+.app-card-icon {
+  font-size: 64px;
+  line-height: 1;
+  margin-bottom: var(--spacing-sm);
+  filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));
+}
+
+.app-card-name {
+  font-size: var(--font-size-large);
+  font-weight: 600;
+  color: var(--color-white);
+  text-align: center;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+  word-wrap: break-word;
+  max-width: 100%;
+}
+
+/* App card background colors */
+.app-card.color-1 { background: linear-gradient(135deg, #FF6B6B, #FF8E8E); }
+.app-card.color-2 { background: linear-gradient(135deg, #4ECDC4, #7EDDD6); }
+.app-card.color-3 { background: linear-gradient(135deg, #FFE66D, #FFF0A0); }
+.app-card.color-4 { background: linear-gradient(135deg, #95E1D3, #B5EDE5); }
+.app-card.color-5 { background: linear-gradient(135deg, #F38181, #F7A3A3); }
+.app-card.color-6 { background: linear-gradient(135deg, #AA96DA, #C4B8E8); }
+.app-card.color-7 { background: linear-gradient(135deg, #FCBAD3, #FDD4E6); }
+.app-card.color-8 { background: linear-gradient(135deg, #A8D8EA, #C4E8F5); }
+
+/* ===== Settings Trigger (Hidden corner for long-press) ===== */
+.settings-trigger {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 60px;
+  height: 60px;
+  z-index: 100;
+  /* Invisible but interactive */
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+/* Visual feedback during long-press */
+.settings-trigger.active {
+  background: rgba(255,255,255,0.1);
+}
+
+/* ===== Placeholder View ===== */
+.placeholder-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+  background: linear-gradient(180deg, #E8F8F5 0%, #D5F5E3 100%);
+  text-align: center;
+}
+
+.placeholder-icon {
+  font-size: 96px;
+  line-height: 1;
+  margin-bottom: var(--spacing-md);
+  animation: float 2s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+.placeholder-content h3 {
+  font-size: var(--font-size-xlarge);
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.placeholder-content p {
+  font-size: var(--font-size-large);
+  color: var(--color-dark);
+  opacity: 0.8;
+}
+
+/* ===== Settings View ===== */
+.settings-content {
+  flex: 1;
+  padding: var(--spacing-lg) var(--spacing-md);
+  background-color: var(--color-light-gray);
+  overflow-y: auto;
+}
+
+.settings-section {
+  background-color: var(--color-white);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.settings-section h3 {
+  font-size: var(--font-size-large);
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-sm);
+  padding-bottom: var(--spacing-xs);
+  border-bottom: 2px solid var(--color-light-gray);
+}
+
+/* ===== Toggle Switch ===== */
+.settings-toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: var(--spacing-sm) 0;
+  cursor: pointer;
+  min-height: var(--touch-target-comfortable);
+  justify-content: center;
+}
+
+.toggle-label {
+  font-size: var(--font-size-large);
+  font-weight: 600;
+  margin-bottom: var(--spacing-xs);
+}
+
+.toggle-description {
+  font-size: var(--font-size-base);
+  color: #666;
+  margin-top: var(--spacing-xs);
+}
+
+.toggle-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+  background-color: #ccc;
+  border-radius: 34px;
+  transition: background-color 0.3s ease;
+  align-self: flex-end;
+  margin-top: var(--spacing-sm);
+}
+
+.toggle-switch:before {
+  content: '';
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+}
+
+.toggle-input:checked + .toggle-switch {
+  background-color: var(--color-primary);
+}
+
+.toggle-input:checked + .toggle-switch:before {
+  transform: translateX(26px);
+}
+
+/* ===== Settings Info ===== */
+.settings-info {
+  font-size: var(--font-size-base);
+  color: #666;
+  padding: var(--spacing-xs) 0;
+}
+
+/* ===== Responsive Adjustments ===== */
+@media (min-width: 768px) {
+  .app-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--spacing-lg);
+    padding: var(--spacing-lg);
+  }
+  
+  .app-card {
+    min-height: 200px;
+  }
+  
+  .app-card-icon {
+    font-size: 80px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
