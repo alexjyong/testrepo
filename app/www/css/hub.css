@@ -80,14 +80,17 @@
 }
 
 /* ===== Placeholder View ===== */
+#placeholder-view {
+  background: linear-gradient(180deg, #E8F8F5 0%, #D5F5E3 100%);
+}
+
 .placeholder-content {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-xl);
-  background: linear-gradient(180deg, #E8F8F5 0%, #D5F5E3 100%);
+  padding: 80px var(--spacing-xl) var(--spacing-xl);
   text-align: center;
 }
 
@@ -95,6 +98,7 @@
   font-size: 96px;
   line-height: 1;
   margin-bottom: var(--spacing-md);
+  margin-top: 40px;
   animation: float 2s ease-in-out infinite;
 }
 

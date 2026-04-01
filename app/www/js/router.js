@@ -106,19 +106,14 @@ const Router = (function() {
    */
   function handleBackButton() {
     if (!isOnHub()) {
+      // Not on hub - go back to hub
       back();
       return true;
     }
-    
-    // On hub - check parental gate
-    if (typeof Settings !== 'undefined' && Settings.isParentalGateEnabled()) {
-      // In Phase 1, just prevent exit
-      console.log('Router: Back pressed on hub with gate enabled');
-      return true; // Prevent default back behavior
-    }
-    
-    // Allow exit if gate disabled
-    return false;
+
+    // On hub - allow exit (TODO: block when parental gate is enabled in Phase 2)
+    console.log('Router: Back pressed on hub - allowing exit');
+    return false; // Allow exit
   }
   
   // Public API

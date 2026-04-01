@@ -26,26 +26,29 @@ const App = (function() {
    */
   function onReady() {
     console.log('SproutPlay: DOM ready');
-    
+
     // Load settings
     if (typeof Settings !== 'undefined') {
       Settings.load();
     }
-    
+
     // Initialize registry (auto-init in registry.js)
     // AppRegistry should already be initialized
-    
+
     // Initialize router (auto-init in router.js)
     // Router should already be initialized
-    
+
     // Initialize hub
     if (typeof Hub !== 'undefined') {
       Hub.init();
     }
-    
+
     // Setup settings screen
     setupSettingsScreen();
-    
+
+    // Setup hardware back button handler (after Capacitor is ready)
+    setupBackButton();
+
     console.log('SproutPlay: Initialized');
     console.log('SproutPlay: Welcome to SproutPlay!');
   }
@@ -82,21 +85,23 @@ const App = (function() {
    * Setup hardware back button handler
    */
   function setupBackButton() {
-    // Listen for back button (works in some webviews and Capacitor)
-    document.addEventListener('backbutton', function(event) {
-      event.preventDefault();
-      
-      if (typeof Router !== 'undefined') {
-        const handled = Router.handleBackButton();
-        if (!handled) {
-          // Allow default behavior (exit app)
-          if (navigator.app) {
-            navigator.app.exitApp();
+    // Use Capacitor's App plugin for Android back button
+    const setupCapacitorBackButton = function() {
+      if (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.App) {
+        Capacitor.Plugins.App.addListener('backButton', function(event) {
+          if (typeof Router !== 'undefined') {
+            Router.handleBackButton();
           }
-        }
+        }).catch(function(err) {
+          console.log('Back button listener error:', err);
+        });
+        console.log('Capacitor back button listener registered');
       }
-    }, false);
-    
+    };
+
+    // Try to register immediately
+    setupCapacitorBackButton();
+
     // Also handle browser back button for testing
     window.addEventListener('popstate', function(event) {
       if (typeof Router !== 'undefined' && !Router.isOnHub()) {
