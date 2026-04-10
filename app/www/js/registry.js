@@ -79,42 +79,48 @@ const AppRegistry = (function() {
   }
   
   /**
-   * Initialize registry with default placeholder apps
+   * Initialize registry with default apps
    */
   function init() {
-    // Register placeholder apps for Phase 1
+    // Register Paint as the first real app
+    register({
+      id: 'paint',
+      name: 'Paint',
+      icon: '🎨',
+      description: 'Draw and paint with colors',
+      backgroundColor: 'color-1',
+      placeholder: false,
+      path: 'paint/index.html'
+    });
+
+    // Register placeholder apps for future mini-apps
     register({
       id: 'coming-soon-1',
       name: 'Coming Soon',
       icon: '🚀',
       description: 'Something fun is coming!',
-      backgroundColor: 'color-1'
+      backgroundColor: 'color-2',
+      placeholder: true
     });
-    
+
     register({
       id: 'coming-soon-2',
       name: 'Stay Tuned',
-      icon: '🎨',
-      description: 'A creative app is being built',
-      backgroundColor: 'color-2'
+      icon: '🎮',
+      description: 'Games coming soon!',
+      backgroundColor: 'color-3',
+      placeholder: true
     });
-    
+
     register({
       id: 'coming-soon-3',
       name: 'More Fun',
-      icon: '🎮',
-      description: 'Games coming soon!',
-      backgroundColor: 'color-3'
-    });
-    
-    register({
-      id: 'coming-soon-4',
-      name: 'Watch This',
       icon: '🌟',
       description: 'Exciting apps ahead!',
-      backgroundColor: 'color-4'
+      backgroundColor: 'color-4',
+      placeholder: true
     });
-    
+
     console.log('AppRegistry: Initialized with', apps.length, 'apps');
   }
   

@@ -127,25 +127,30 @@ const Hub = (function() {
    */
   function handleAppTap(app) {
     const now = Date.now();
-    
+
     // Rapid tap prevention
     if (now - lastTapTime < TAP_DEBOUNCE) {
       console.log('Hub: Ignoring rapid tap');
       return;
     }
     lastTapTime = now;
-    
-    console.log('Hub: Tapped app:', app.name);
-    
-    // Navigate to placeholder view
-    if (typeof Router !== 'undefined') {
-      // Set the placeholder title
-      const titleEl = document.getElementById('placeholder-title');
-      if (titleEl) {
-        titleEl.textContent = app.name;
+
+    console.log('Hub: Tapped app:', app.name, 'placeholder:', app.placeholder);
+
+    if (app.placeholder) {
+      // Navigate to placeholder view
+      if (typeof Router !== 'undefined') {
+        const titleEl = document.getElementById('placeholder-title');
+        if (titleEl) {
+          titleEl.textContent = app.name;
+        }
+        Router.navigate('placeholder', { app: app });
       }
-      
-      Router.navigate('placeholder', { app: app });
+    } else {
+      // Navigate to real app's HTML file
+      if (app.path) {
+        window.location.href = app.path;
+      }
     }
   }
   
