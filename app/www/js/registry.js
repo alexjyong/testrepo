@@ -93,6 +93,17 @@ const AppRegistry = (function() {
       path: 'paint/index.html'
     });
 
+    // Register Memory Game as a real app
+    register({
+      id: 'memory',
+      name: 'Memory',
+      icon: '🧠',
+      description: 'Match the emoji pairs!',
+      backgroundColor: 'color-5',
+      placeholder: false,
+      path: 'memory/index.html'
+    });
+
     // Register placeholder apps for future mini-apps
     register({
       id: 'coming-soon-1',
@@ -106,8 +117,8 @@ const AppRegistry = (function() {
     register({
       id: 'coming-soon-2',
       name: 'Stay Tuned',
-      icon: '🎮',
-      description: 'Games coming soon!',
+      icon: '🎨',
+      description: 'A creative app is being built',
       backgroundColor: 'color-3',
       placeholder: true
     });

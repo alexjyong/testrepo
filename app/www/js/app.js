@@ -72,11 +72,27 @@ const App = (function() {
     if (parentalGateToggle && typeof Settings !== 'undefined') {
       // Set initial state
       parentalGateToggle.checked = Settings.isParentalGateEnabled();
-      
+
       // Listen for changes
       parentalGateToggle.addEventListener('change', function() {
         Settings.setParentalGate(this.checked);
         console.log('App: Parental gate set to', this.checked);
+      });
+    }
+
+    // Sound toggle
+    const soundToggle = document.getElementById('sound-toggle');
+    if (soundToggle) {
+      // Load saved state (default on)
+      const soundEnabled = typeof Settings !== 'undefined' ? Settings.get('soundEnabled') : true;
+      soundToggle.checked = soundEnabled !== false;
+      if (typeof Sound !== 'undefined') Sound.setEnabled(soundToggle.checked);
+
+      // Listen for changes
+      soundToggle.addEventListener('change', function() {
+        if (typeof Settings !== 'undefined') Settings.set('soundEnabled', this.checked);
+        if (typeof Sound !== 'undefined') Sound.setEnabled(this.checked);
+        console.log('App: Sound set to', this.checked);
       });
     }
   }
