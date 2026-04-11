@@ -1,0 +1,341 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* ===== ABC Header ===== */
+.abc-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #F1C40F, #F39C12);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.back-button {
+    position: absolute;
+    left: 12px;
+    background: rgba(255,255,255,0.25);
+    color: #fff;
+    border: 2px solid rgba(255,255,255,0.6);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    min-width: 48px;
+    min-height: 48px;
+    transition: background 0.2s;
+}
+
+.back-button:active {
+    background: rgba(255,255,255,0.4);
+}
+
+.abc-title {
+    font-size: 28px;
+    font-weight: 700;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+}
+
+/* ===== Word Building Area ===== */
+.word-area {
+    position: fixed;
+    top: 65px;
+    left: 0;
+    right: 0;
+    z-index: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 16px;
+    background: linear-gradient(135deg, #E8F8F5, #D5F5E3);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.word-slots {
+    display: flex;
+    gap: 8px;
+}
+
+.word-slot {
+    width: 64px;
+    height: 64px;
+    border: 3px dashed #B0C4AE;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.6);
+    transition: background 0.2s, border-color 0.2s, transform 0.1s;
+}
+
+.word-slot.drag-over {
+    background: rgba(78, 205, 196, 0.4);
+    border-color: #4ECDC4;
+    transform: scale(1.05);
+}
+
+.word-slot.filled {
+    border-style: solid;
+    border-color: #4ECDC4;
+    background: #fff;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+}
+
+.word-slot .dropped-letter {
+    font-size: 40px;
+    font-weight: 800;
+    animation: dropBounce 0.4s ease;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+}
+
+@keyframes dropBounce {
+    0% { transform: scale(0.3); opacity: 0; }
+    60% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.next-button {
+    background: #4ECDC4;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #3DBDB5;
+    transition: transform 0.2s;
+}
+
+.next-button:active {
+    transform: scale(0.95);
+}
+
+/* ===== Scattered Letter Area ===== */
+.app-container {
+    min-height: 100vh;
+    background: linear-gradient(180deg, #FFF9E6 0%, #F7F7F7 100%);
+    overflow: hidden;
+}
+
+.letter-area {
+    position: absolute;
+    top: 160px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+}
+
+/* ===== Scattered Letter Tiles ===== */
+.letter-tile {
+    position: absolute;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    font-size: 40px;
+    font-weight: 800;
+    color: #fff;
+    cursor: grab;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    transition: box-shadow 0.15s;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    z-index: 10;
+}
+
+.letter-tile:active {
+    cursor: grabbing;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+}
+
+.letter-tile.dragging {
+    z-index: 10000;
+    box-shadow: 0 12px 24px rgba(0,0,0,0.4);
+    transition: none;
+    opacity: 0.9;
+}
+
+.letter-tile.placed {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+    transform: scale(0.5);
+}
+
+/* ===== Debug Log ===== */
+.debug-log {
+    position: fixed;
+    top: 70px;
+    right: 8px;
+    background: rgba(0,0,0,0.85);
+    color: #0f0;
+    font-family: monospace;
+    font-size: 11px;
+    padding: 8px;
+    border-radius: 8px;
+    max-width: 220px;
+    max-height: 160px;
+    overflow-y: auto;
+    z-index: 9999;
+    pointer-events: none;
+    line-height: 1.3;
+    word-break: break-all;
+}
+
+/* Letter colors */
+.letter-color-A { background: #E74C3C; }
+.letter-color-B { background: #3498DB; }
+.letter-color-C { background: #F1C40F; color: #333; }
+.letter-color-D { background: #68B25B; }
+.letter-color-E { background: #E67E22; }
+.letter-color-F { background: #9B59B6; }
+.letter-color-G { background: #1ABC9C; }
+.letter-color-H { background: #34495E; }
+.letter-color-I { background: #E91E63; }
+.letter-color-J { background: #00BCD4; }
+.letter-color-K { background: #FF5722; }
+.letter-color-L { background: #8BC34A; }
+.letter-color-M { background: #FFC107; color: #333; }
+.letter-color-N { background: #673AB7; }
+.letter-color-O { background: #4CAF50; }
+.letter-color-P { background: #FF9800; }
+.letter-color-Q { background: #795548; }
+.letter-color-R { background: #F44336; }
+.letter-color-S { background: #2196F3; }
+.letter-color-T { background: #607D8B; }
+.letter-color-U { background: #CDDC39; color: #333; }
+.letter-color-V { background: #E040FB; }
+.letter-color-W { background: #009688; }
+.letter-color-X { background: #A1887F; }
+.letter-color-Y { background: #FFEB3B; color: #333; }
+.letter-color-Z { background: #6A1B9A; }
+
+/* ===== Celebration Overlay ===== */
+.celebration-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.celebration-card {
+    background: linear-gradient(135deg, #FFE66D, #FFF0A0);
+    border-radius: 24px;
+    padding: 32px 24px;
+    max-width: 340px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.3);
+    animation: celebrationPop 0.5s ease;
+}
+
+@keyframes celebrationPop {
+    0% { transform: scale(0.5); opacity: 0; }
+    80% { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.celebration-emoji {
+    font-size: 72px;
+    line-height: 1;
+    margin-bottom: 12px;
+    animation: celebrationSpin 1s ease;
+}
+
+@keyframes celebrationSpin {
+    0% { transform: rotate(0deg) scale(0); }
+    100% { transform: rotate(360deg) scale(1); }
+}
+
+.celebration-card h2 {
+    font-size: 40px;
+    font-weight: 800;
+    color: #34495E;
+    margin-bottom: 8px;
+}
+
+.celebration-card p {
+    font-size: 16px;
+    color: #555;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.play-again-button {
+    background: #68B25B;
+    color: #fff;
+    border: none;
+    border-radius: 16px;
+    padding: 14px 28px;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #5A9E4F;
+    transition: transform 0.2s;
+}
+
+.play-again-button:active {
+    transform: scale(0.95);
+}
+
+.play-again-button.secondary {
+    background: #E0E0E0;
+    color: #555;
+    box-shadow: 0 4px 0 #CCC;
+    margin-top: 12px;
+}
+
+/* ===== Responsive ===== */
+@media only screen and (max-width: 400px) {
+    .word-slot {
+        width: 52px;
+        height: 52px;
+    }
+
+    .word-slot .dropped-letter {
+        font-size: 32px;
+    }
+
+    .letter-tile {
+        width: 56px;
+        height: 56px;
+        font-size: 36px;
+    }
+}
+
+@media only screen and (min-width: 768px) {
+    .word-slot {
+        width: 72px;
+        height: 72px;
+    }
+
+    .word-slot .dropped-letter {
+        font-size: 48px;
+    }
+
+    .letter-tile {
+        width: 72px;
+        height: 72px;
+        font-size: 44px;
+    }
+}

@@ -132,6 +132,125 @@ const Sound = (function() {
     });
   }
 
+  // Track loaded native audio assets
+  var _loadedNativeAudio = {};
+
+  /**
+   * Phonics sound for a letter — uses Capacitor Native Audio
+   */
+  function phonics(letter) {
+    if (!enabled) return;
+
+    var letterUpper = letter.toUpperCase();
+    var assetId = 'phonics_' + letterUpper;
+    var dbg = window._debug || function(m) { console.log('[Sound]', m); };
+
+    try {
+      var NativeAudio = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativeAudio;
+      if (!NativeAudio) {
+        dbg('No NativeAudio, fallback tone');
+        _phonicsTone(letter);
+        return;
+      }
+
+      // If already loaded, just play
+      if (_loadedNativeAudio[assetId]) {
+        NativeAudio.play({ assetId: assetId }).catch(function() {
+          _phonicsTone(letter);
+        });
+        return;
+      }
+
+      dbg('NativeAudio: ' + letterUpper);
+
+      // NativeAudio path is relative to android assets/ folder
+      NativeAudio.preload({
+        assetId: assetId,
+        assetPath: 'public/sounds/phonics/' + letterUpper + '.mp3',
+        audioChannelNum: 1,
+        isUrl: false
+      }).then(function() {
+        dbg('Loaded: ' + letterUpper);
+        _loadedNativeAudio[assetId] = true;
+        return NativeAudio.play({ assetId: assetId });
+      }).then(function() {
+        dbg('Playing: ' + letterUpper);
+      }).catch(function(err) {
+        dbg('NativeAudio ERR: ' + letterUpper + ' msg=' + (err.message || err.code || JSON.stringify(err)));
+        console.warn('Sound: NativeAudio failed', letter, err);
+        _phonicsTone(letter);
+      });
+    } catch (e) {
+      dbg('NativeAudio EX: ' + letterUpper);
+      console.warn('Sound: NativeAudio error', letter, e);
+      _phonicsTone(letter);
+    }
+  }
+
+  /**
+   * Fallback phonics sound using Web Audio API tones
+   */
+  function _phonicsTone(letter) {
+    if (!audioCtx) return;
+    init();
+    var now = audioCtx.currentTime;
+    var charCode = letter.toUpperCase().charCodeAt(0) - 65;
+    var baseFreq = 200 + (charCode * 15);
+    var isVowel = 'AEIOU'.indexOf(letter.toUpperCase()) !== -1;
+
+    if (isVowel) {
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = baseFreq;
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.45);
+    } else {
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = baseFreq;
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.2);
+    }
+  }
+
+  /**
+   * "Speak" a word using phonics breakdown
+   * Plays each letter sound in sequence, then a celebration chord
+   */
+  function speakWord(word) {
+    if (!enabled || !audioCtx) return;
+    init();
+    var now = audioCtx.currentTime;
+    var chars = word.toUpperCase().split('');
+
+    chars.forEach(function(letter, i) {
+      var delay = i * 0.25;
+      // Play each letter's phonics sound
+      var charCode = letter.charCodeAt(0) - 65;
+      var baseFreq = 200 + (charCode * 15);
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = baseFreq;
+      gain.gain.setValueAtTime(0.15, now + delay);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + delay + 0.2);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now + delay);
+      osc.stop(now + delay + 0.25);
+    });
+  }
+
   /**
    * Enable/disable sounds
    */
@@ -155,6 +274,8 @@ const Sound = (function() {
     match,
     noMatch,
     celebrate,
+    phonics,
+    speakWord,
     setEnabled,
     isEnabled
   };

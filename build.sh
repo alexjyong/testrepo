@@ -46,7 +46,7 @@ fi
 
 # Return to app directory
 cd ..
-
+cd ..
 # Find the APK
 APK_PATH="app/android/app/build/outputs/apk/debug/app-debug.apk"
 

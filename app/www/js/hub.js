@@ -33,18 +33,40 @@ const Hub = (function() {
     }
     
     console.log('Hub: Initializing');
-    
+
     // Render app icons
     renderAppIcons();
-    
-    // Setup settings trigger (long-press)
-    setupSettingsTrigger();
-    
+
+    // Setup settings button
+    setupSettingsButton();
+
     // Setup placeholder view back button
     setupPlaceholderBack();
-    
+
     isInitialized = true;
     console.log('Hub: Initialized');
+  }
+
+  /**
+   * Setup settings button tap
+   */
+  function setupSettingsButton() {
+    var settingsBtn = document.getElementById('settings-btn');
+    if (settingsBtn) {
+      settingsBtn.addEventListener('click', function() {
+        console.log('Hub: Opening settings');
+        if (typeof Router !== 'undefined') {
+          Router.navigate('settings');
+        }
+      });
+    }
+  }
+
+  /**
+   * Setup settings trigger (long-press corner) - REMOVED
+   */
+  function setupSettingsTrigger() {
+    // No longer needed - visible settings button added
   }
   
   /**

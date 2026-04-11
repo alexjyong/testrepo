@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="msapplication-tap-highlight" content="no">
+    <meta name="color-scheme" content="light dark">
+    <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height, target-densitydpi=device-dpi" />
+    <link rel="stylesheet" href="../css/abc.css" type="text/css" media="screen">
+    <title>SproutPlay - ABC!</title>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="abc-header">
+            <button id="abc-back" class="back-button" aria-label="Back to hub">← Back</button>
+            <h1 class="abc-title">ABC</h1>
+        </header>
+
+        <!-- Word Building Area -->
+        <div class="word-area">
+            <div id="word-slots" class="word-slots">
+                <!-- Slots injected by JS -->
+            </div>
+            <button id="next-word-btn" class="next-button">Next ➡️</button>
+        </div>
+
+        <!-- Scattered Letters Area -->
+        <div id="letter-area" class="letter-area">
+            <!-- Scattered letter tiles injected by JS -->
+        </div>
+
+        <!-- Debug overlay -->
+        <div id="debug-log" class="debug-log"></div>
+
+        <!-- Celebration Overlay -->
+        <div id="celebration" class="celebration-overlay" style="display:none">
+            <div class="celebration-card">
+                <div class="celebration-emoji">🎉</div>
+                <h2 id="celebration-word">CAT!</h2>
+                <p id="celebration-meaning">A furry animal that says meow! 🐱</p>
+                <button id="play-again-btn" class="play-again-button">Next Word ✨</button>
+                <button id="celebration-back" class="play-again-button secondary">Back to Hub</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/sound.js"></script>
+    <script src="../js/abc/abc.js"></script>
+    
+    <!-- Pre-loaded phonics audio elements -->
+    <audio id="snd-A" src="../sounds/phonics/A.mp3" preload="auto"></audio>
+    <audio id="snd-B" src="../sounds/phonics/B.mp3" preload="auto"></audio>
+    <audio id="snd-C" src="../sounds/phonics/C.mp3" preload="auto"></audio>
+    <audio id="snd-D" src="../sounds/phonics/D.mp3" preload="auto"></audio>
+    <audio id="snd-E" src="../sounds/phonics/E.mp3" preload="auto"></audio>
+    <audio id="snd-F" src="../sounds/phonics/F.mp3" preload="auto"></audio>
+    <audio id="snd-G" src="../sounds/phonics/G.mp3" preload="auto"></audio>
+    <audio id="snd-H" src="../sounds/phonics/H.mp3" preload="auto"></audio>
+    <audio id="snd-I" src="../sounds/phonics/I.mp3" preload="auto"></audio>
+    <audio id="snd-J" src="../sounds/phonics/J.mp3" preload="auto"></audio>
+    <audio id="snd-K" src="../sounds/phonics/K.mp3" preload="auto"></audio>
+    <audio id="snd-L" src="../sounds/phonics/L.mp3" preload="auto"></audio>
+    <audio id="snd-M" src="../sounds/phonics/M.mp3" preload="auto"></audio>
+    <audio id="snd-N" src="../sounds/phonics/N.mp3" preload="auto"></audio>
+    <audio id="snd-O" src="../sounds/phonics/O.mp3" preload="auto"></audio>
+    <audio id="snd-P" src="../sounds/phonics/P.mp3" preload="auto"></audio>
+    <audio id="snd-Q" src="../sounds/phonics/Q.mp3" preload="auto"></audio>
+    <audio id="snd-R" src="../sounds/phonics/R.mp3" preload="auto"></audio>
+    <audio id="snd-S" src="../sounds/phonics/S.mp3" preload="auto"></audio>
+    <audio id="snd-T" src="../sounds/phonics/T.mp3" preload="auto"></audio>
+    <audio id="snd-U" src="../sounds/phonics/U.mp3" preload="auto"></audio>
+    <audio id="snd-V" src="../sounds/phonics/V.mp3" preload="auto"></audio>
+    <audio id="snd-W" src="../sounds/phonics/W.mp3" preload="auto"></audio>
+    <audio id="snd-X" src="../sounds/phonics/X.mp3" preload="auto"></audio>
+    <audio id="snd-Y" src="../sounds/phonics/Y.mp3" preload="auto"></audio>
+    <audio id="snd-Z" src="../sounds/phonics/Z.mp3" preload="auto"></audio>
+</body>
+</html>

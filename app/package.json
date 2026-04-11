@@ -15,6 +15,7 @@
   "author": "Alex Yong",
   "license": "Apache-2.0",
   "dependencies": {
+    "@capacitor-community/native-audio": "^6.0.0",
     "@capacitor/android": "^6.0.0",
     "@capacitor/core": "^6.0.0"
   },

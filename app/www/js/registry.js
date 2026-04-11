@@ -93,6 +93,17 @@ const AppRegistry = (function() {
       path: 'paint/index.html'
     });
 
+    // Register ABC Letters as a real app
+    register({
+      id: 'abc',
+      name: 'ABC',
+      icon: '🔤',
+      description: 'Learn letters and build words!',
+      backgroundColor: 'color-3',
+      placeholder: false,
+      path: 'abc/index.html'
+    });
+
     // Register Memory Game as a real app
     register({
       id: 'memory',
