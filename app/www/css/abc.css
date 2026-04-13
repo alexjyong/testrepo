@@ -87,22 +87,20 @@
 
 .word-slot.filled {
     border-style: solid;
-    border-color: #4ECDC4;
-    background: #fff;
     box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+    /* background and border-color set inline by fillSlot() per letter color */
 }
 
 .word-slot .dropped-letter {
-    font-size: 40px;
     font-weight: 800;
     animation: dropBounce 0.4s ease;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    /* font-size, color, text-shadow set inline by fillSlot() */
 }
 
 @keyframes dropBounce {
-    0% { transform: scale(0.3); opacity: 0; }
+    0% { transform: scale(0.3); }
     60% { transform: scale(1.2); }
-    100% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(1); }
 }
 
 .next-button {
@@ -135,7 +133,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    overflow: hidden;
+    overflow: visible;
 }
 
 /* ===== Scattered Letter Tiles ===== */

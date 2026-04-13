@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ── Word List ─────────────────────────────────────────────────
 
     var WORD_LIST = [
+        // 3-letter words
         { word: 'CAT', meaning: 'A furry animal that says meow! 🐱' },
         { word: 'DOG', meaning: 'A loyal pet that says woof! 🐶' },
         { word: 'RUN', meaning: 'Move your legs super fast! 🏃' },
@@ -17,7 +18,23 @@ document.addEventListener('DOMContentLoaded', function () {
         { word: 'CUP', meaning: 'You drink water from it! 🥤' },
         { word: 'BED', meaning: 'Where you sleep at night! 🛏️' },
         { word: 'RED', meaning: 'The color of fire trucks! 🚒' },
-        { word: 'FUN', meaning: 'Playing makes you say this! 🎉' }
+        { word: 'FUN', meaning: 'Playing makes you say this! 🎉' },
+        { word: 'BOX', meaning: 'You put toys inside! 📦' },
+        { word: 'MUD', meaning: 'Wet dirt on the ground! 💧' },
+        // 4-letter words
+        { word: 'FROG', meaning: 'A green animal that says ribbit! 🐸' },
+        { word: 'BIRD', meaning: 'A creature that flies in the sky! 🐦' },
+        { word: 'FISH', meaning: 'An animal that swims in water! 🐟' },
+        { word: 'DUCK', meaning: 'A bird that says quack! 🦆' },
+        { word: 'CAKE', meaning: 'A sweet treat for birthdays! 🎂' },
+        { word: 'TREE', meaning: 'A tall plant with leaves! 🌳' },
+        // 5-letter words
+        { word: 'APPLE', meaning: 'A red fruit that is crunchy! 🍎' },
+        { word: 'HORSE', meaning: 'A big animal you can ride! 🐴' },
+        { word: 'TIGER', meaning: 'A big cat with stripes! 🐅' },
+        { word: 'SHEEP', meaning: 'A fluffy animal that says baa! 🐑' },
+        { word: 'PEACH', meaning: 'A soft sweet fruit! 🍑' },
+        { word: 'BREAD', meaning: 'What you make toast from! 🍞' }
     ];
 
     var LETTER_COLORS = {
@@ -63,21 +80,77 @@ document.addEventListener('DOMContentLoaded', function () {
     function init() {
         backButton && backButton.addEventListener('click', function() { window.location.href = '../index.html'; });
         nextBtn && nextBtn.addEventListener('click', loadNextWord);
-        playAgainBtn && playAgainBtn.addEventListener('click', function() { hideCelebration(); loadNextWord(); });
+        playAgainBtn && playAgainBtn.addEventListener('click', function() { hideCelebration(); loadRandomWord(); });
         celebrationBackBtn && celebrationBackBtn.addEventListener('click', function() { window.location.href = '../index.html'; });
 
-        loadWord(0);
+        loadRandomWord();
     }
 
     function loadWord(index) {
         currentWordIndex = index % WORD_LIST.length;
         hideCelebration();
         createSlots();
-        scatterLetters();
+
+        // Show the complete word in slots first so kids see what to build
+        showWordPreview();
+
+        // Read the word aloud using phonics sounds
+        speakWordPhonics(WORD_LIST[currentWordIndex].word);
+
+        // After a pause, clear the preview and scatter letters for building
+        setTimeout(function() {
+            clearWordPreview();
+            scatterLetters();
+        }, 2000);
+    }
+
+    function loadRandomWord() {
+        loadWord(Math.floor(Math.random() * WORD_LIST.length));
     }
 
     function loadNextWord() {
-        loadWord(currentWordIndex + 1);
+        var next;
+        do {
+            next = Math.floor(Math.random() * WORD_LIST.length);
+        } while (next === currentWordIndex && WORD_LIST.length > 1);
+        loadWord(next);
+    }
+
+    // Show the complete word in the slots as a preview before scattering
+    function showWordPreview() {
+        var word = WORD_LIST[currentWordIndex].word;
+        for (var i = 0; i < slots.length; i++) {
+            var color = LETTER_COLORS[word[i]] || '#333';
+            var size = parseInt(slots[i].el.style.width);
+            var fontSize = size * 0.65;
+            slots[i].el.style.background = color;
+            slots[i].el.style.borderStyle = 'solid';
+            slots[i].el.style.borderColor = color;
+            slots[i].el.innerHTML = '<span style="font-size:' + fontSize + 'px; font-weight:800; color:#fff; text-shadow:1px 1px 2px rgba(0,0,0,0.3);">' + word[i] + '</span>';
+        }
+    }
+
+    // Clear the preview so slots are empty and ready for dragging
+    function clearWordPreview() {
+        for (var i = 0; i < slots.length; i++) {
+            slots[i].el.style.background = '';
+            slots[i].el.style.borderStyle = '';
+            slots[i].el.style.borderColor = '';
+            slots[i].el.innerHTML = '';
+            slots[i].filled = false;
+        }
+    }
+
+    // Read a word aloud letter-by-letter using phonics (works on Android WebView)
+    function speakWordPhonics(word) {
+        if (typeof Sound === 'undefined') return;
+        Sound.init();
+        var letters = word.split('');
+        letters.forEach(function(letter, i) {
+            setTimeout(function() {
+                Sound.phonics(letter);
+            }, i * 500);
+        });
     }
 
     // ── Slots ────────────────────────────────────────────────────
@@ -87,9 +160,14 @@ document.addEventListener('DOMContentLoaded', function () {
         slotsContainer.innerHTML = '';
         slots = [];
 
+        // Adjust slot size based on word length
+        var slotSize = word.length <= 3 ? 64 : word.length === 4 ? 56 : 48;
+
         for (var i = 0; i < word.length; i++) {
             var slot = document.createElement('div');
             slot.className = 'word-slot';
+            slot.style.width = slotSize + 'px';
+            slot.style.height = slotSize + 'px';
             slot.dataset.index = i;
             slotsContainer.appendChild(slot);
             slots.push({ el: slot, letter: word[i], filled: false });
@@ -105,8 +183,8 @@ document.addEventListener('DOMContentLoaded', function () {
         var word = WORD_LIST[currentWordIndex].word;
         var letters = word.split('');
         var areaRect = letterArea.getBoundingClientRect();
-        var tileW = 64;
-        var tileH = 64;
+        var tileW = word.length <= 3 ? 64 : word.length === 4 ? 56 : 48;
+        var tileH = tileW;
         var padding = 20;
 
         // Shuffle letters
@@ -123,6 +201,18 @@ document.addEventListener('DOMContentLoaded', function () {
             tile.textContent = letter;
             tile.style.left = pos.x + 'px';
             tile.style.top = pos.y + 'px';
+
+            // Entry animation: start off-screen, animate in
+            tile.style.transform = 'scale(0.3)';
+            tile.style.opacity = '0';
+            setTimeout((function(t, delay) {
+                return function() {
+                    t.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s';
+                    t.style.transform = 'scale(1)';
+                    t.style.opacity = '1';
+                    setTimeout(function() { t.style.transition = ''; }, 500);
+                };
+            })(tile, i * 150), 400 + i * 150);
 
             var tileObj = { el: tile, letter: letter, x: pos.x, y: pos.y, originalX: pos.x, originalY: pos.y };
             letterTiles.push(tileObj);
@@ -162,13 +252,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function startDrag(e) {
         e.preventDefault();
-        if (activeDrag) return;
+        if (activeDrag) {
+            // Safety: clear any stuck drag state from a previous interaction
+            cleanupDrag();
+        }
 
         var tile = e.currentTarget;
         var tileObj = findTileObj(tile);
-        if (!tileObj || tileObj.el.classList.contains('placed')) return;
+        if (!tileObj) {
+            debug('No tileObj found');
+            return;
+        }
+        if (tileObj.el.classList.contains('placed')) {
+            debug('Tile already placed: ' + tileObj.letter);
+            return;
+        }
 
         activeDrag = tileObj;
+        debug('Start drag: ' + tileObj.letter);
 
         // Initialize sound on first interaction
         if (typeof Sound !== 'undefined') Sound.init();
@@ -190,6 +291,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         document.addEventListener('touchmove', moveDrag, { passive: false });
         document.addEventListener('touchend', endDrag);
+        document.addEventListener('touchcancel', cancelDrag);
         document.addEventListener('mousemove', moveDrag);
         document.addEventListener('mouseup', endDrag);
     }
@@ -214,28 +316,41 @@ document.addEventListener('DOMContentLoaded', function () {
         if (slot) slot.el.classList.add('drag-over');
     }
 
-    function endDrag(e) {
-        if (!activeDrag) return;
-
+    function cleanupDrag() {
         document.removeEventListener('touchmove', moveDrag);
         document.removeEventListener('touchend', endDrag);
+        document.removeEventListener('touchcancel', cancelDrag);
         document.removeEventListener('mousemove', moveDrag);
         document.removeEventListener('mouseup', endDrag);
 
-        var point = e.changedTouches ? e.changedTouches[0] : e;
-        var slot = getSlotAtPoint(point.clientX, point.clientY);
-
-        if (slot && slot.letter === activeDrag.letter && !slot.filled) {
-            // Correct slot!
-            fillSlot(slot, activeDrag);
-        } else {
-            // Wrong — animate back to original position
-            animateBack(activeDrag);
+        if (activeDrag) {
+            activeDrag.el.classList.remove('dragging');
         }
-
-        activeDrag.el.classList.remove('dragging');
         slots.forEach(function(s) { s.el.classList.remove('drag-over'); });
         activeDrag = null;
+    }
+
+    function endDrag(e) {
+        if (!activeDrag) return;
+
+        try {
+            var point = e.changedTouches ? e.changedTouches[0] : e;
+            var slot = getSlotAtPoint(point.clientX, point.clientY);
+
+            if (slot && slot.letter === activeDrag.letter && !slot.filled) {
+                fillSlot(slot, activeDrag);
+            } else {
+                animateBack(activeDrag);
+            }
+        } finally {
+            cleanupDrag();
+        }
+    }
+
+    function cancelDrag() {
+        if (!activeDrag) return;
+        animateBack(activeDrag);
+        cleanupDrag();
     }
 
     function getSlotAtPoint(cx, cy) {
@@ -251,22 +366,32 @@ document.addEventListener('DOMContentLoaded', function () {
     function fillSlot(slot, tileObj) {
         slot.filled = true;
         slot.el.classList.add('filled');
-        slot.el.innerHTML = '<span class="dropped-letter">' + slot.letter + '</span>';
+        var color = LETTER_COLORS[slot.letter] || '#333';
+        var size = parseInt(slot.el.style.width);
+        var fontSize = size * 0.65;
 
-        // Play phonics sound again
-        if (typeof Sound !== 'undefined') Sound.phonics(tileObj.letter);
+        // Match the tile style: colored background with white text
+        slot.el.style.background = color;
+        slot.el.style.borderColor = color;
+        slot.el.style.opacity = '1';
+        slot.el.innerHTML = '<span class="dropped-letter" style="font-size:' + fontSize + 'px; font-weight:800; color:#fff; text-shadow:1px 1px 2px rgba(0,0,0,0.3); opacity:1;">' + slot.letter + '</span>';
 
-        // Hide the tile
+        // Play phonics sound
+        if (typeof Sound !== 'undefined') Sound.phonics(slot.letter);
+
+        // Hide the dragged tile
         tileObj.el.classList.add('placed');
 
         // Check if word complete
         var allFilled = slots.every(function(s) { return s.filled; });
+        debug('All filled: ' + allFilled + ' (' + slots.filter(function(s){return s.filled;}).length + '/' + slots.length + ')');
         if (allFilled) {
             setTimeout(showCelebration, 500);
         }
     }
 
     function animateBack(tileObj) {
+        debug('animateBack: ' + tileObj.letter);
         // Simple CSS transition back to original position
         tileObj.el.style.transition = 'left 0.3s ease, top 0.3s ease';
         tileObj.el.style.left = tileObj.originalX + 'px';
@@ -291,9 +416,15 @@ document.addEventListener('DOMContentLoaded', function () {
         if (celebrationMeaningEl) celebrationMeaningEl.textContent = wordObj.meaning;
         if (celebrationEl) celebrationEl.style.display = 'flex';
 
+        // Read the word aloud using phonics (speechSynthesis doesn't work on Android WebView)
+        speakWordPhonics(wordObj.word);
+
         if (typeof Sound !== 'undefined') {
             Sound.init();
-            Sound.celebrate();
+            // Play celebrate sound after the word finishes spelling out
+            setTimeout(function() {
+                Sound.celebrate();
+            }, wordObj.word.length * 500 + 300);
         }
     }
 
