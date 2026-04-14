@@ -72,7 +72,13 @@ document.addEventListener('DOMContentLoaded', function () {
         playAgainBtn && playAgainBtn.addEventListener('click', function() { hideCelebration(); loadRandomWord(); });
         celebrationBackBtn && celebrationBackBtn.addEventListener('click', function() { window.location.href = '../index.html'; });
 
-        loadRandomWord();
+        // Warm up the TTS engine — Android TTS needs time to initialize on first call
+        if (typeof Sound !== 'undefined') Sound.init();
+        if (typeof Sound !== 'undefined' && Sound.speak) {
+            Sound.speak('', 0.8).catch(function() {});
+        }
+        // Load first word after TTS warmup
+        setTimeout(loadRandomWord, 200);
     }
 
     function loadWord(index) {
