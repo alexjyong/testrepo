@@ -63,17 +63,6 @@ document.addEventListener('DOMContentLoaded', function () {
     var playAgainBtn = document.getElementById('play-again-btn');
     var celebrationBackBtn = document.getElementById('celebration-back');
     var backButton = document.getElementById('abc-back');
-    var debugEl = document.getElementById('debug-log');
-
-    function debug(msg) {
-        if (debugEl) {
-            debugEl.textContent = msg;
-            console.log('[ABC]', msg);
-        }
-    }
-
-    // Make debug global so sound.js can use it
-    window._debug = debug;
 
     // ── Init ─────────────────────────────────────────────────────
 
@@ -96,13 +85,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         var word = WORD_LIST[currentWordIndex].word;
 
-        // Read the whole word aloud using native TTS, then spell with phonics
+        // Read the whole word aloud using native TTS
         if (typeof Sound !== 'undefined') {
             Sound.init();
-            Sound.speak(word, 0.7).then(function() {
-                // After the word is spoken, spell it out with phonics
-                speakWordPhonics(word);
-            });
+            Sound.speak(word, 0.7);
         }
 
         // After a pause, clear the preview and scatter letters for building
@@ -134,31 +120,24 @@ document.addEventListener('DOMContentLoaded', function () {
             slots[i].el.style.background = color;
             slots[i].el.style.borderStyle = 'solid';
             slots[i].el.style.borderColor = color;
-            slots[i].el.innerHTML = '<span style="font-size:' + fontSize + 'px; font-weight:800; color:#fff; text-shadow:1px 1px 2px rgba(0,0,0,0.3);">' + word[i] + '</span>';
+            slots[i].el.style.opacity = '1';
+            slots[i].el.innerHTML = '<span class="dropped-letter" style="font-size:' + fontSize + 'px; font-weight:800; color:#fff; text-shadow:1px 1px 2px rgba(0,0,0,0.3);">' + word[i] + '</span>';
         }
     }
 
     // Clear the preview so slots are empty and ready for dragging
     function clearWordPreview() {
         for (var i = 0; i < slots.length; i++) {
-            slots[i].el.style.background = '';
-            slots[i].el.style.borderStyle = '';
-            slots[i].el.style.borderColor = '';
-            slots[i].el.innerHTML = '';
-            slots[i].filled = false;
+            var s = slots[i];
+            s.el.style.background = '';
+            s.el.style.borderStyle = '';
+            s.el.style.borderColor = '';
+            s.el.style.boxShadow = '';
+            s.el.style.opacity = '';
+            s.el.innerHTML = '';
+            s.el.classList.remove('filled', 'drag-over');
+            s.filled = false;
         }
-    }
-
-    // Read a word aloud letter-by-letter using phonics (works on Android WebView)
-    function speakWordPhonics(word) {
-        if (typeof Sound === 'undefined') return;
-        Sound.init();
-        var letters = word.split('');
-        letters.forEach(function(letter, i) {
-            setTimeout(function() {
-                Sound.phonics(letter);
-            }, i * 500);
-        });
     }
 
     // ── Slots ────────────────────────────────────────────────────
@@ -267,17 +246,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         var tile = e.currentTarget;
         var tileObj = findTileObj(tile);
-        if (!tileObj) {
-            debug('No tileObj found');
-            return;
-        }
-        if (tileObj.el.classList.contains('placed')) {
-            debug('Tile already placed: ' + tileObj.letter);
-            return;
-        }
+        if (!tileObj) return;
+        if (tileObj.el.classList.contains('placed')) return;
 
         activeDrag = tileObj;
-        debug('Start drag: ' + tileObj.letter);
 
         // Initialize sound on first interaction
         if (typeof Sound !== 'undefined') Sound.init();
@@ -286,7 +258,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (typeof Sound !== 'undefined') {
             Sound.phonics(tileObj.letter);
         }
-        debug('Tapped: ' + tileObj.letter);
 
         var rect = tileObj.el.getBoundingClientRect();
         var point = e.touches ? e.touches[0] : e;
@@ -387,19 +358,29 @@ document.addEventListener('DOMContentLoaded', function () {
         // Play phonics sound
         if (typeof Sound !== 'undefined') Sound.phonics(slot.letter);
 
-        // Hide the dragged tile
-        tileObj.el.classList.add('placed');
+        // Snap the tile to the slot center and hide it (so it looks absorbed)
+        var areaRect = letterArea.getBoundingClientRect();
+        var slotRect = slot.el.getBoundingClientRect();
+        var tileW = tileObj.el.offsetWidth;
+        var tileH = tileObj.el.offsetHeight;
+        var centeredLeft = slotRect.left - areaRect.left + (slotRect.width - tileW) / 2;
+        var centeredTop = slotRect.top - areaRect.top + (slotRect.height - tileH) / 2;
+        tileObj.el.style.transition = 'left 0.15s ease-out, top 0.15s ease-out';
+        tileObj.el.style.left = centeredLeft + 'px';
+        tileObj.el.style.top = centeredTop + 'px';
+        setTimeout(function() {
+            tileObj.el.style.transition = '';
+            tileObj.el.classList.add('placed');
+        }, 160);
 
         // Check if word complete
         var allFilled = slots.every(function(s) { return s.filled; });
-        debug('All filled: ' + allFilled + ' (' + slots.filter(function(s){return s.filled;}).length + '/' + slots.length + ')');
         if (allFilled) {
             setTimeout(showCelebration, 500);
         }
     }
 
     function animateBack(tileObj) {
-        debug('animateBack: ' + tileObj.letter);
         // Simple CSS transition back to original position
         tileObj.el.style.transition = 'left 0.3s ease, top 0.3s ease';
         tileObj.el.style.left = tileObj.originalX + 'px';
