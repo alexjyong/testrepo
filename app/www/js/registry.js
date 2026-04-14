@@ -128,7 +128,7 @@ const AppRegistry = (function() {
     register({
       id: 'coming-soon-2',
       name: 'Stay Tuned',
-      icon: '🎨',
+      icon: '🎁',
       description: 'A creative app is being built',
       backgroundColor: 'color-3',
       placeholder: true
