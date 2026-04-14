@@ -94,14 +94,22 @@ document.addEventListener('DOMContentLoaded', function () {
         // Show the complete word in slots first so kids see what to build
         showWordPreview();
 
-        // Read the word aloud using phonics sounds
-        speakWordPhonics(WORD_LIST[currentWordIndex].word);
+        var word = WORD_LIST[currentWordIndex].word;
+
+        // Read the whole word aloud using native TTS, then spell with phonics
+        if (typeof Sound !== 'undefined') {
+            Sound.init();
+            Sound.speak(word, 0.7).then(function() {
+                // After the word is spoken, spell it out with phonics
+                speakWordPhonics(word);
+            });
+        }
 
         // After a pause, clear the preview and scatter letters for building
         setTimeout(function() {
             clearWordPreview();
             scatterLetters();
-        }, 2000);
+        }, 2500);
     }
 
     function loadRandomWord() {
@@ -416,15 +424,15 @@ document.addEventListener('DOMContentLoaded', function () {
         if (celebrationMeaningEl) celebrationMeaningEl.textContent = wordObj.meaning;
         if (celebrationEl) celebrationEl.style.display = 'flex';
 
-        // Read the word aloud using phonics (speechSynthesis doesn't work on Android WebView)
-        speakWordPhonics(wordObj.word);
-
         if (typeof Sound !== 'undefined') {
             Sound.init();
-            // Play celebrate sound after the word finishes spelling out
-            setTimeout(function() {
-                Sound.celebrate();
-            }, wordObj.word.length * 500 + 300);
+            Sound.celebrate();
+
+            // Read the word aloud, then the meaning
+            var cleanMeaning = wordObj.meaning.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '');
+            Sound.speak(wordObj.word, 0.7).then(function() {
+                return Sound.speak(cleanMeaning, 0.85);
+            });
         }
     }
 

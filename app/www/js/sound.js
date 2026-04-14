@@ -252,6 +252,32 @@ const Sound = (function() {
   }
 
   /**
+   * Speak a word or sentence using native TTS (Capacitor TextToSpeech plugin)
+   * Falls back to phonics letter-by-letter if TTS unavailable
+   * @param {string} text - Text to speak
+   * @param {number} rate - Speech rate (0.5 = slow, 1.0 = normal). Default 0.8
+   * @returns {Promise} resolves when speech finishes
+   */
+  function speak(text, rate) {
+    if (!enabled) return Promise.resolve();
+    var TTS = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
+    if (!TTS) {
+      console.warn('Sound: No TextToSpeech plugin, skipping speak');
+      return Promise.resolve();
+    }
+    return TTS.speak({
+      text: text,
+      lang: 'en-US',
+      rate: rate || 0.8,
+      pitch: 1.1,
+      volume: 1.0,
+      category: 'ambient'
+    }).catch(function(err) {
+      console.warn('Sound: TTS speak failed', err);
+    });
+  }
+
+  /**
    * Enable/disable sounds
    */
   function setEnabled(value) {
@@ -275,6 +301,7 @@ const Sound = (function() {
     noMatch,
     celebrate,
     phonics,
+    speak,
     speakWord,
     setEnabled,
     isEnabled
