@@ -1,33 +1,34 @@
 # SproutPlay
 
-A kids app hub with fun mini-apps - coming soon!
+A children's app hub — a bunch of fun mini-apps for kids ages 3–7, all in one place.
 
-SproutPlay is a collection of kid-friendly mini-apps in a simple, colorful interface designed for children ages 3-7. Built with Capacitor/Ionic following the BabbyPaint pattern.
+## What's Inside
 
-## Features (Phase 1)
+### 🎨 Paint
+A drawing canvas with 9 colors, 4 brush sizes, an eraser, and undo/redo. Kids can save their artwork to the device gallery. There's also a screen lock mode so the drawing doesn't accidentally close.
 
-- 🎨 **Hub Launcher**: Colorful main menu with large, kid-friendly app icons
-- 🚀 **Placeholder Apps**: Preview of upcoming mini-apps
-- ⚙️ **Parent Settings**: Hidden settings accessed via long-press
-- 🔒 **Parental Gate Framework**: Infrastructure for preventing accidental exits (full feature in Phase 2)
+### 🧠 Memory
+A 4×4 card matching game with 8 emoji pairs. Flip two cards at a time to find matching pairs — with sound effects for flips, matches, and misses. When you match all 8 pairs, there's a celebration screen with stars. Uses 10 simple sight words (CAT, DOG, RUN, BIG, SUN, HAT, CUP, BED, RED, FUN).
+
+### 🔤 ABC Letters
+A word-building game where kids drag scattered letter tiles into slots to spell words. Each word is read aloud, then each letter makes its phonics sound when tapped and dragged. There are 22 words of varying difficulty — three-letter words like CAT and DOG, four-letter words like FROG and BIRD, and five-letter words like APPLE and HORSE.
+
+### 🏠 Hub
+The main menu is a colorful grid of app icons. Tap one and you're in that mini-app. Hit the back button to return. There's a ⚙️ settings button in the top-right corner with toggles for sound effects and a parental gate option (framework is there, challenge not yet implemented).
 
 ## Build It Yourself
 
 ### Prerequisites
-
 - Node.js 18+
 - npm
-- Android Studio (for Android build)
+- Java 21 (required by Capacitor 8)
+- Android SDK (Android Studio)
 
 ### Setup
 
 ```bash
 cd app
-
-# Install dependencies
 npm install
-
-# Sync Capacitor
 npx cap sync android
 ```
 
@@ -43,21 +44,15 @@ Or manually:
 
 ```bash
 cd app
-
-# Install dependencies
 npm install
-
-# Sync Capacitor
 npx cap sync android
-
-# Build for Android
 cd android
 ./gradlew assembleDebug
 ```
 
-The APK will be in `app/android/app/build/outputs/apk/debug/`
+The APK ends up in `app/android/app/build/outputs/apk/debug/app-debug.apk`.
 
-### Install on Device
+### Install on a Device
 
 ```bash
 adb install app/android/app/build/outputs/apk/debug/app-debug.apk
@@ -68,89 +63,58 @@ adb install app/android/app/build/outputs/apk/debug/app-debug.apk
 ```
 sproutplay/
 ├── app/
-│   ├── android/                # Android platform (Capacitor)
-│   ├── resources/              # App icons and splash screens
+│   ├── android/                    # Android platform (Capacitor)
+│   ├── resources/                  # App icons, splash screens
 │   ├── www/
-│   │   ├── index.html          # Main entry point
+│   │   ├── index.html              # Hub launcher
+│   │   ├── abc/index.html          # ABC mini-app
+│   │   ├── memory/index.html       # Memory game
+│   │   ├── paint/index.html        # Paint app
+│   │   ├── sounds/phonics/         # 26 letter phonics .mp3 files (A–Z)
 │   │   ├── css/
-│   │   │   ├── base.css        # Base styles
-│   │   │   ├── hub.css         # Hub launcher styles
-│   │   │   └── settings.css    # Settings screen styles
+│   │   │   ├── base.css            # Shared styles
+│   │   │   ├── hub.css             # Hub + placeholder styles
+│   │   │   └── settings.css        # Settings screen
+│   │   │   ├── paint.css           # Paint app styles
+│   │   │   ├── memory.css          # Memory game styles
+│   │   │   └── abc.css             # ABC app styles
 │   │   └── js/
-│   │       ├── app.js          # Main app initialization
-│   │       ├── hub.js          # Hub launcher logic
-│   │       ├── router.js       # Navigation
-│   │       ├── registry.js     # App registry
-│   │       ├── settings.js     # Settings management
-│   │       └── gesture.js      # Long-press gesture
-│   ├── capacitor.config.ts     # Capacitor configuration
-│   └── package.json            # Dependencies
-├── build.sh                    # Build script
-└── README.md                   # Documentation
+│   │       ├── app.js              # Main entry + settings
+│   │       ├── hub.js              # Hub launcher
+│   │       ├── router.js           # Navigation between views
+│   │       ├── registry.js         # App registry
+│   │       ├── settings.js         # Settings persistence
+│   │       ├── gesture.js          # Long-press gesture detector
+│   │       ├── sound.js            # Sound effects (Web Audio + Native Audio + TTS)
+│   │       ├── paint/paint.js      # Paint app logic
+│   │       ├── memory/memory.js    # Memory game logic
+│   │       └── abc/abc.js          # ABC app logic
+│   ├── capacitor.config.ts
+│   └── package.json
+├── build.sh                        # Build script
+└── README.md
 ```
 
-## Development
+## Sound System
 
-### Running in Browser (for testing)
+The app has three types of audio:
 
-```bash
-cd app
-npx cap open
-```
+| What | How |
+|------|-----|
+| **Phonics (A–Z)** | Native audio plugin plays `.mp3` files from `sounds/phonics/` |
+| **Game sounds** | Web Audio API generates tones for flips, matches, and celebrations |
+| **Word speech** | Capacitor Text-to-Speech plugin reads words and meanings aloud |
 
-Or serve the www directory with a local server:
+The phonics files are 26 `.mp3` files downloaded from Google TTS, about 150KB total.
 
-```bash
-cd app/www
-npx serve
-```
+## Technology
 
-### Debugging
-
-Open Chrome DevTools for remote debugging:
-
-```bash
-chrome://inspect
-```
-
-## Roadmap
-
-### Phase 1 (Current) - Framework & Main Menu
-- ✅ Hub launcher with placeholder apps
-- ✅ Settings screen with parental gate toggle
-- ✅ Navigation framework
-
-### Phase 2 - Parental Gate
-- Hold-button challenge
-- Back button protection
-
-### Phase 3 - Paint Mini-App
-- Drawing canvas
-- Color palette
-- Save to gallery
-
-### Phase 4 - Memory Game
-- Card matching game
-- Kid-friendly images
-- Victory celebration
-
-### Phase 5 - Coloring Book
-- Pre-drawn images
-- Flood fill coloring
-- Multiple pages
-
-## Technology Stack
-
-- **Framework**: Capacitor 6
-- **Language**: Vanilla JavaScript (ES6+)
-- **Styling**: CSS3 with custom properties
-- **Storage**: localStorage
-- **Target**: Android 5.0+ (API 21+)
+- **Capacitor 8** — wraps the web app in a native Android shell
+- **Vanilla JavaScript** — no frameworks, no build tools, no npm dependencies beyond Capacitor
+- **CSS3** — custom properties, flexbox, animations
+- **localStorage** — persists settings (sound toggle, parental gate)
+- **Android target**: API 22+
 
 ## License
 
 Apache-2.0
-
-## Acknowledgements
-
-Built following the [BabbyPaint](https://github.com/alexjyong/BabbyPaint) pattern by Alex Yong.
