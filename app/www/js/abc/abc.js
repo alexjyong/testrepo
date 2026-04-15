@@ -82,6 +82,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function loadWord(index) {
+        letterArea.innerHTML = '';
         currentWordIndex = index % WORD_LIST.length;
         hideCelebration();
         createSlots();
@@ -170,7 +171,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // ── Scatter Letters ──────────────────────────────────────────
 
     function scatterLetters() {
-        letterArea.innerHTML = '';
         letterTiles = [];
 
         var word = WORD_LIST[currentWordIndex].word;

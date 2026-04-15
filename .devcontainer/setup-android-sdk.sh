@@ -3,7 +3,7 @@ set -e
 
 # Android SDK setup for devcontainer
 ANDROID_SDK_ROOT="/opt/android-sdk"
-CMDLINE_TOOLS_VERSION="11076708"  # latest command-line tools
+CMDLINE_TOOLS_VERSION="11076708"
 
 # # Skip if already installed
 # if [ -d "$ANDROID_SDK_ROOT/cmdline-tools/latest" ]; then
