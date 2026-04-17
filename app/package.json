@@ -1,0 +1,28 @@
+{
+  "name": "dev.alexjyong.sproutplay",
+  "displayName": "SproutPlay",
+  "version": "0.0.1",
+  "description": "A kids app hub with fun mini-apps",
+  "scripts": {
+    "build": "npx cap sync"
+  },
+  "keywords": [
+    "kids",
+    "games",
+    "children",
+    "capacitor"
+  ],
+  "author": "Alex Yong",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@capacitor-community/native-audio": "^8.0.0",
+    "@capacitor-community/text-to-speech": "^8.0.0",
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/core": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.0",
+    "@capacitor/cli": "^8.0.0",
+    "typescript": "^6.0.2"
+  }
+}
