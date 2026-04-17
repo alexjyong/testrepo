@@ -1,6 +1,11 @@
 # SproutPlay
 
-A children's app hub;  a bunch of fun mini-apps for kids ages 3–7, all in one place.
+A children's app hub; a bunch of fun mini-apps for kids ages 3–7, all in one place.
+
+Pre-release version available here on Github!
+[<img src="https://github.com/user-attachments/assets/b0218883-f6dd-4f9e-abc1-ed070c6107f2"
+alt="Get it on GitHub"
+height="80">](https://github.com/alexjyong/sproutplay/releases/latest/)
 
 ## What's Inside
 
