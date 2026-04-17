@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function () {
         { word: 'CAT', meaning: 'A furry animal that says meow! 🐱' },
         { word: 'DOG', meaning: 'A loyal pet that says woof! 🐶' },
         { word: 'RUN', meaning: 'Move your legs super fast! 🏃' },
-        { word: 'BIG', meaning: 'Very large — like a giant! 🐘' },
+        { word: 'BIG', meaning: 'Very large, like an elephant! 🐘' },
         { word: 'SUN', meaning: 'The warm star in the sky! ☀️' },
         { word: 'HAT', meaning: 'Something you wear on your head! 🧢' },
         { word: 'CUP', meaning: 'You drink water from it! 🥤' },
@@ -21,19 +21,24 @@ document.addEventListener('DOMContentLoaded', function () {
         { word: 'FUN', meaning: 'Playing makes you say this! 🎉' },
         { word: 'BOX', meaning: 'You put toys inside! 📦' },
         { word: 'MUD', meaning: 'Wet dirt on the ground! 💧' },
+        { word: 'PIE', meaning: 'A yummy dessert sometimes filled with fruit! 🥧' },
         // 4-letter words
         { word: 'FROG', meaning: 'A green animal that says ribbit! 🐸' },
         { word: 'BIRD', meaning: 'A creature that flies in the sky! 🐦' },
         { word: 'FISH', meaning: 'An animal that swims in water! 🐟' },
         { word: 'DUCK', meaning: 'A bird that says quack! 🦆' },
         { word: 'CAKE', meaning: 'A sweet treat for birthdays! 🎂' },
+        { word: 'DEER', meaning: 'A majestic woodland animal! 🦌' },
         { word: 'TREE', meaning: 'A tall plant with leaves! 🌳' },
+        { word: 'LION', meaning: 'A big cat with a mane! 🦁' },
         // 5-letter words
         { word: 'APPLE', meaning: 'A red fruit that is crunchy! 🍎' },
         { word: 'HORSE', meaning: 'A big animal you can ride! 🐴' },
         { word: 'TIGER', meaning: 'A big cat with stripes! 🐅' },
         { word: 'SHEEP', meaning: 'A fluffy animal that says baa! 🐑' },
         { word: 'PEACH', meaning: 'A soft sweet fruit! 🍑' },
+        { word: 'ROBOT', meaning: 'A clever machine that can move on its own to do jobs! 🤖' },
+        { word: 'ALIEN', meaning: 'A being from outer space! 👽' },
         { word: 'BREAD', meaning: 'What you make toast from! 🍞' }
     ];
 
@@ -48,6 +53,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ── State ────────────────────────────────────────────────────
 
     var currentWordIndex = 0;
+    var scatterTimeout = null
     var slots = [];       // { el, letter, filled }
     var letterTiles = []; // { el, letter, x, y, originalX, originalY }
     var activeDrag = null;
@@ -82,6 +88,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function loadWord(index) {
+
+        if (scatterTimeout){
+
+         clearTimeout(scatterTimeout)
+
+        }
         letterArea.innerHTML = '';
         currentWordIndex = index % WORD_LIST.length;
         hideCelebration();
@@ -99,9 +111,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         // After a pause, clear the preview and scatter letters for building
-        setTimeout(function() {
+        scatterTimeout = setTimeout(function() {
             clearWordPreview();
             scatterLetters();
+            scatterTimeout = null
         }, 2500);
     }
 
