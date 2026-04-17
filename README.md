@@ -105,7 +105,7 @@ The app has three types of audio:
 | **Game sounds** | Web Audio API generates tones for flips, matches, and celebrations |
 | **Word speech** | Capacitor Text-to-Speech plugin reads words and meanings aloud |
 
-The phonics files are 26 `.mp3` files downloaded from Google TTS, about 150KB total.
+The phonics files are 26 `.mp3` files generated with Kokoro TTS, about 150KB total.
 
 ## Technology
 
@@ -117,4 +117,4 @@ The phonics files are 26 `.mp3` files downloaded from Google TTS, about 150KB to
 
 ## License
 
-Apache-2.0
+GNU General Public License v3.0
