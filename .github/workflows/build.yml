@@ -2,8 +2,6 @@ name: Build Android Version
 
 on:
   workflow_dispatch:
-    inputs:
-      output_type:
 
 jobs:
 
