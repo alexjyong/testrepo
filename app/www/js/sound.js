@@ -294,16 +294,17 @@ const Sound = (function() {
     return enabled;
   }
 
-  return {
-    init,
-    flip,
-    match,
-    noMatch,
-    celebrate,
-    phonics,
-    speak,
-    speakWord,
-    setEnabled,
-    isEnabled
+  return { 
+    init, 
+    flip, 
+    match, 
+    noMatch, 
+    celebrate, 
+    phonics, 
+    speak, 
+    speakWord, 
+    setEnabled, 
+    isEnabled, 
+    tone 
   };
 })();
