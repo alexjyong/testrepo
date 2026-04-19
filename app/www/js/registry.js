@@ -117,12 +117,13 @@ const AppRegistry = (function() {
 
     // Register placeholder apps for future mini-apps
     register({
-      id: 'coming-soon-1',
-      name: 'Coming Soon',
+      id: 'space',
+      name: 'Space Hero',
       icon: '🚀',
-      description: 'Something fun is coming!',
+      description: 'Bounce the star to clear space junk!',
       backgroundColor: 'color-2',
-      placeholder: true
+      placeholder: false,
+      path: 'space/index.html'
     });
 
     register({
