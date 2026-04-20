@@ -152,6 +152,7 @@ const SpaceHero = (function() {
 
   function handleStart() {
     if (gameActive && !ballLaunched) {
+      if (window.Sound) window.Sound.init();
       ballLaunched = true;
     }
   }
