@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var WORD_LIST = [
         // 3-letter words
+        { word: 'CAR', meaning: 'A vehicle that goes vroom! 🚗' },
         { word: 'CAT', meaning: 'A furry animal that says meow! 🐱' },
         { word: 'DOG', meaning: 'A loyal pet that says woof! 🐶' },
         { word: 'RUN', meaning: 'Move your legs super fast! 🏃' },
@@ -22,6 +23,7 @@ document.addEventListener('DOMContentLoaded', function () {
         { word: 'BOX', meaning: 'You put toys inside! 📦' },
         { word: 'MUD', meaning: 'Wet dirt on the ground! 💧' },
         { word: 'PIE', meaning: 'A yummy dessert sometimes filled with fruit! 🥧' },
+        { word: 'TEA', meaning: 'A hot yummy drink. Goes great with lemons! 🫖' },
         // 4-letter words
         { word: 'FROG', meaning: 'A green animal that says ribbit! 🐸' },
         { word: 'BIRD', meaning: 'A creature that flies in the sky! 🐦' },
@@ -32,6 +34,7 @@ document.addEventListener('DOMContentLoaded', function () {
         { word: 'TREE', meaning: 'A tall plant with leaves! 🌳' },
         { word: 'LION', meaning: 'A big cat with a mane! 🦁' },
         // 5-letter words
+        { word: 'MOUSE', meaning: 'A small furry animal that goes squeak! 🐁' },
         { word: 'APPLE', meaning: 'A red fruit that is crunchy! 🍎' },
         { word: 'HORSE', meaning: 'A big animal you can ride! 🐴' },
         { word: 'TIGER', meaning: 'A big cat with stripes! 🐅' },
@@ -62,7 +65,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var slotsContainer = document.getElementById('word-slots');
     var letterArea = document.getElementById('letter-area');
-    var nextBtn = document.getElementById('next-word-btn');
     var celebrationEl = document.getElementById('celebration');
     var celebrationWordEl = document.getElementById('celebration-word');
     var celebrationMeaningEl = document.getElementById('celebration-meaning');
@@ -74,7 +76,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function init() {
         backButton && backButton.addEventListener('click', function() { window.location.href = '../index.html'; });
-        nextBtn && nextBtn.addEventListener('click', loadNextWord);
         playAgainBtn && playAgainBtn.addEventListener('click', function() { hideCelebration(); loadRandomWord(); });
         celebrationBackBtn && celebrationBackBtn.addEventListener('click', function() { window.location.href = '../index.html'; });
 
@@ -120,14 +121,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function loadRandomWord() {
         loadWord(Math.floor(Math.random() * WORD_LIST.length));
-    }
-
-    function loadNextWord() {
-        var next;
-        do {
-            next = Math.floor(Math.random() * WORD_LIST.length);
-        } while (next === currentWordIndex && WORD_LIST.length > 1);
-        loadWord(next);
     }
 
     // Show the complete word in the slots as a preview before scattering
@@ -374,8 +367,8 @@ document.addEventListener('DOMContentLoaded', function () {
         slot.el.style.opacity = '1';
         slot.el.innerHTML = '<span class="dropped-letter" style="font-size:' + fontSize + 'px; font-weight:800; color:#fff; text-shadow:1px 1px 2px rgba(0,0,0,0.3); opacity:1;">' + slot.letter + '</span>';
 
-        // Play phonics sound
-        if (typeof Sound !== 'undefined') Sound.phonics(slot.letter);
+        // Play letter name sound via TTS
+        if (typeof Sound !== 'undefined') Sound.speak(slot.letter, 0.9);
 
         // Snap the tile to the slot center and hide it (so it looks absorbed)
         var areaRect = letterArea.getBoundingClientRect();

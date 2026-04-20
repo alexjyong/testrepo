@@ -201,33 +201,49 @@ const SpaceHero = (function() {
     ballY += ballDY * dt;
 
     // Wall collisions (Left/Right)
-    if (ballX + ballDX * dt > canvas.width - BALL_RADIUS || ballX + ballDX * dt < BALL_RADIUS) {
+    if (ballX < BALL_RADIUS) {
+      ballX = BALL_RADIUS;
+      ballDX = -ballDX;
+    } else if (ballX > canvas.width - BALL_RADIUS) {
+      ballX = canvas.width - BALL_RADIUS;
       ballDX = -ballDX;
     }
 
     // Ceiling collision
-    if (ballY + ballDY * dt < BALL_RADIUS) {
+    if (ballY < BALL_RADIUS) {
+      ballY = BALL_RADIUS;
       ballDY = -ballDY;
     }
-    // Bottom collision (Paddle or Bumpers)
-    else if (ballY > canvas.height - BALL_RADIUS - 5) {
-      // Paddle collision
-      if (ballX > paddleX && ballX < paddleX + PADDLE_WIDTH) {
-        ballDY = -Math.abs(ballDY);
-        let hitPos = (ballX - (paddleX + PADDLE_WIDTH / 2)) / (PADDLE_WIDTH / 2);
-        ballDX = hitPos * BALL_SPEED;
 
-        if (window.Sound) window.Sound.tone(400, 100, 'sine', 0.2);
+    // Paddle collision
+    const paddleTop = canvas.height - PADDLE_HEIGHT - 10;
+    if (ballDY > 0 && 
+        ballY + BALL_RADIUS > paddleTop && 
+        ballY - BALL_RADIUS < paddleTop + PADDLE_HEIGHT &&
+        ballX > paddleX && 
+        ballX < paddleX + PADDLE_WIDTH) {
+      
+      // Bounce off paddle
+      ballDY = -Math.abs(ballDY);
+      // Snap to above paddle to avoid multi-collision
+      ballY = paddleTop - BALL_RADIUS;
+      
+      // Angle based on where it hit the paddle
+      let hitPos = (ballX - (paddleX + PADDLE_WIDTH / 2)) / (PADDLE_WIDTH / 2);
+      ballDX = hitPos * BALL_SPEED * 1.5;
+
+      if (window.Sound) window.Sound.tone(400, 100, 'sine', 0.2);
+    }
+    // Bottom collision (Bumpers or Game Over)
+    else if (ballY + BALL_RADIUS > canvas.height) {
+      if (bumpersActive > 0) {
+        bumpersActive--;
+        updateBumpersUI();
+        ballDY = -Math.abs(ballDY);
+        ballY = canvas.height - BALL_RADIUS - 5; // Bounce up
+        if (window.Sound) window.Sound.tone(150, 150, 'square', 0.2);
       } else {
-        // Bumper or Game Over
-        if (bumpersActive > 0) {
-          bumpersActive--;
-          updateBumpersUI();
-          ballDY = -Math.abs(ballDY);
-          if (window.Sound) window.Sound.tone(150, 150, 'square', 0.2);
-        } else {
-          gameOver();
-        }
+        gameOver();
       }
     }
 
@@ -275,7 +291,8 @@ const SpaceHero = (function() {
           let bx = c * (blockWidth + BLOCK_PADDING) + BLOCK_OFFSET_LEFT;
           let by = r * (blockHeight + BLOCK_PADDING) + BLOCK_OFFSET_TOP;
 
-          if (ballX > bx && ballX < bx + blockWidth && ballY > by && ballY < by + blockHeight) {
+          if (ballX + BALL_RADIUS > bx && ballX - BALL_RADIUS < bx + blockWidth && 
+              ballY + BALL_RADIUS > by && ballY - BALL_RADIUS < by + blockHeight) {
             ballDY = -ballDY;
             b.status--;
             score += 10;
