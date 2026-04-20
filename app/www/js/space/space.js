@@ -14,7 +14,7 @@ const SpaceHero = (function() {
   const BLOCK_OFFSET_TOP = 60;
   const BLOCK_OFFSET_LEFT = 30;
   const BALL_SPEED = 2.5;
-  const BUMPER_COUNT = 3;
+  const HEART_COUNT = 3;
   const FRAME_TIME = 1000 / 60;
   const MAX_DELTA = FRAME_TIME * 2;
 
@@ -24,7 +24,7 @@ const SpaceHero = (function() {
   let ballX, ballY, ballDX, ballDY;
   let blocks = [];
   let powerups = [];
-  let bumpersActive = BUMPER_COUNT;
+  let heartsActive = HEART_COUNT;
   let score = 0;
   let gameActive = false;
   let ballLaunched = false;
@@ -100,8 +100,8 @@ const SpaceHero = (function() {
   function resetGameState() {
     paddleX = (canvas.width - PADDLE_WIDTH) / 2;
     resetBall();
-    bumpersActive = BUMPER_COUNT;
-    updateBumpersUI();
+    heartsActive = HEART_COUNT;
+    updateHeartsUI();
     initBlocks();
     powerups = [];
     score = 0;
@@ -123,14 +123,14 @@ const SpaceHero = (function() {
     ballLaunched = false;
   }
 
-  function updateBumpersUI() {
-    for (let i = 1; i <= BUMPER_COUNT; i++) {
-      const bumper = document.getElementById(`bumper-${i}`);
-      if (bumper) {
-        if (i <= bumpersActive) {
-          bumper.classList.remove('broken');
+  function updateHeartsUI() {
+    for (let i = 1; i <= HEART_COUNT; i++) {
+      const heart = document.getElementById(`heart-${i}`);
+      if (heart) {
+        if (i <= heartsActive) {
+          heart.classList.remove('broken');
         } else {
-          bumper.classList.add('broken');
+          heart.classList.add('broken');
         }
       }
     }
@@ -236,9 +236,9 @@ const SpaceHero = (function() {
     }
     // Bottom collision (Bumpers or Game Over)
     else if (ballY + BALL_RADIUS > canvas.height) {
-      if (bumpersActive > 0) {
-        bumpersActive--;
-        updateBumpersUI();
+      if (heartsActive > 0) {
+        heartsActive--;
+        updateHeartsUI();
         ballDY = -Math.abs(ballDY);
         ballY = canvas.height - BALL_RADIUS - 5; // Bounce up
         if (window.Sound) window.Sound.tone(150, 150, 'square', 0.2);
@@ -256,9 +256,9 @@ const SpaceHero = (function() {
           p.y < canvas.height - 10 &&
           p.x > paddleX && p.x < paddleX + PADDLE_WIDTH) {
 
-        if (bumpersActive < BUMPER_COUNT) {
-          bumpersActive++;
-          updateBumpersUI();
+        if (heartsActive < HEART_COUNT) {
+          heartsActive++;
+          updateHeartsUI();
           if (window.Sound) window.Sound.tone(600, 200, 'triangle', 0.3);
         }
         powerups.splice(i, 1);

@@ -42,8 +42,8 @@
     touch-action: none;
 }
 
-/* Energy Bumpers */
-.bumper-container {
+/* Heart Containers! like zelda!   */
+.heart-container {
     position: absolute;
     bottom: 10px;
     left: 50%;
@@ -53,7 +53,7 @@
     pointer-events: none;
 }
 
-.bumper {
+.heart {
     width: 40px;
     height: 40px;
     background: none;
@@ -64,15 +64,15 @@
     font-size: 30px;
 }
 
-.bumper::before {
+.heart::before {
     content: "❤️";
 }
 
-.bumper.broken::before{
+.heart.broken::before{
     content: "💔";
 }
 
-.bumper.broken {
+.heart.broken {
     opacity: 1;
     transform: none;
     animation: heartPop 0.5s ease-out;
