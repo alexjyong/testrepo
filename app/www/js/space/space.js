@@ -139,7 +139,7 @@ const SpaceHero = (function() {
   function startGame() {
     if (gameActive) return;
 
-    if (window.Sound) window.Sound.init();
+    if (Sound) Sound.init();
 
     gameActive = true;
     lastTime = performance.now();
@@ -152,7 +152,7 @@ const SpaceHero = (function() {
 
   function handleStart() {
     if (gameActive && !ballLaunched) {
-      if (window.Sound) window.Sound.init();
+      if (Sound) Sound.init();
       ballLaunched = true;
     }
   }
@@ -233,7 +233,7 @@ const SpaceHero = (function() {
       let hitPos = (ballX - (paddleX + PADDLE_WIDTH / 2)) / (PADDLE_WIDTH / 2);
       ballDX = hitPos * BALL_SPEED * 1.5;
 
-      if (window.Sound) window.Sound.tone(400, 100, 'sine', 0.2);
+      if (Sound) Sound.tone(400, 100, 'sine', 0.2);
     }
     // Bottom collision (Bumpers or Game Over)
     else if (ballY + BALL_RADIUS > canvas.height) {
@@ -242,7 +242,7 @@ const SpaceHero = (function() {
         updateHeartsUI();
         ballDY = -Math.abs(ballDY);
         ballY = canvas.height - BALL_RADIUS - 5; // Bounce up
-        if (window.Sound) window.Sound.tone(150, 150, 'square', 0.2);
+        if (Sound) Sound.tone(150, 150, 'square', 0.2);
       } else {
         gameOver();
       }
@@ -260,7 +260,7 @@ const SpaceHero = (function() {
         if (heartsActive < HEART_COUNT) {
           heartsActive++;
           updateHeartsUI();
-          if (window.Sound) window.Sound.tone(600, 200, 'triangle', 0.3);
+          if (Sound) Sound.tone(600, 200, 'triangle', 0.3);
         }
         powerups.splice(i, 1);
       }
@@ -275,7 +275,7 @@ const SpaceHero = (function() {
 
   function gameOver() {
     gameActive = false;
-    if (window.Sound) window.Sound.tone(200, 400, 'sawtooth', 0.15);
+    if (Sound) Sound.tone(200, 400, 'sawtooth', 0.15);
     document.getElementById('gameover-score').textContent = score;
     document.getElementById('gameover').style.display = 'flex';
   }
@@ -298,7 +298,7 @@ const SpaceHero = (function() {
             b.status--;
             score += 10;
 
-            if (window.Sound) window.Sound.tone(800, 50, 'triangle', 0.2);
+            if (Sound) Sound.tone(800, 50, 'triangle', 0.2);
 
             if (b.status === 0 && b.type === 'powerup') {
               powerups.push({
@@ -327,7 +327,7 @@ const SpaceHero = (function() {
     if (allCleared && gameActive) {
       gameActive = false;
       document.getElementById('celebration').style.display = 'flex';
-      if (window.Sound) window.Sound.celebrate();
+      if (Sound) Sound.celebrate();
     }
   }
 
