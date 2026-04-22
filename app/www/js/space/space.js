@@ -13,7 +13,7 @@ const SpaceHero = (function() {
   const BLOCK_PADDING = 10;
   const BLOCK_OFFSET_TOP = 60;
   const BLOCK_OFFSET_LEFT = 30;
-  const BALL_SPEED = 2.5;
+  const BALL_SPEED = 3.5;
   const HEART_COUNT = 3;
   const FRAME_TIME = 1000 / 60;
   const MAX_DELTA = FRAME_TIME * 2;
@@ -342,12 +342,13 @@ const SpaceHero = (function() {
   }
 
   function drawScore() {
+    const heartsWidth = HEART_COUNT * 40 + (HEART_COUNT - 1) * 15;
     ctx.font = 'bold 20px sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.fillStyle = '#00f2ff';
     ctx.shadowBlur = 0;
-    ctx.fillText('Score: ' + score, 10, 10);
+    ctx.fillText('Score: ' + score, heartsWidth + 20, 10);
   }
 
   function drawPowerups() {

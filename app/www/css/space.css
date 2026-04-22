@@ -45,12 +45,12 @@
 /* Heart Containers! like zelda!   */
 .heart-container {
     position: absolute;
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 10px;
+    left: 10px;
     display: flex;
     gap: 15px;
     pointer-events: none;
+    z-index: 2;
 }
 
 .heart {
