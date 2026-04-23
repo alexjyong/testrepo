@@ -237,8 +237,8 @@ const SpaceHero = (function() {
     }
     // Bottom collision (Bumpers or Game Over)
     else if (ballY + BALL_RADIUS > canvas.height) {
+      heartsActive--;
       if (heartsActive > 0) {
-        heartsActive--;
         updateHeartsUI();
         ballDY = -Math.abs(ballDY);
         ballY = canvas.height - BALL_RADIUS - 5; // Bounce up
