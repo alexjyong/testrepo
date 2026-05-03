@@ -24,7 +24,11 @@ const SpaceHero = (function() {
   let ballX, ballY, ballDX, ballDY;
   let blocks = [];
   let powerups = [];
+  let particles = [];
+  let stars = [];
   let heartsActive = HEART_COUNT;
+  let giantBall = false;
+  let flashAlpha = 0;
   let score = 0;
   let gameActive = false;
   let ballLaunched = false;
@@ -72,6 +76,8 @@ const TOUCH_LAUNCH_GRACE_MS = 150;
     if (blocks.length === 0) {
       initBlocks();
     }
+
+    initStars();
   }
 
   function initBlocks() {
@@ -106,6 +112,9 @@ const TOUCH_LAUNCH_GRACE_MS = 150;
     updateHeartsUI();
     initBlocks();
     powerups = [];
+    particles = [];
+    giantBall = false;
+    flashAlpha = 0;
     score = 0;
     ballLaunched = false;
     gameActive = false;
@@ -152,7 +161,8 @@ const TOUCH_LAUNCH_GRACE_MS = 150;
     }
   }
 
-function handleStart() {
+function handleStart(e) {
+  if (e.type === 'touchstart') e.preventDefault();
   touchStartTime = Date.now();
   if (gameActive && !ballLaunched) {
     if (Sound) Sound.init();
@@ -197,8 +207,14 @@ function handleTouchMove(e) {
     animationId = requestAnimationFrame(gameLoop);
   }
 
+  function effectiveBallR() {
+    return giantBall ? BALL_RADIUS * 2 : BALL_RADIUS;
+  }
+
   function update(dt) {
     if (!gameActive) return;
+
+    if (flashAlpha > 0) flashAlpha = Math.max(0, flashAlpha - 0.05 * dt);
 
     if (!ballLaunched) {
       ballX = paddleX + PADDLE_WIDTH / 2;
@@ -208,70 +224,83 @@ function handleTouchMove(e) {
     ballX += ballDX * dt;
     ballY += ballDY * dt;
 
+    const br = effectiveBallR();
+
     // Wall collisions (Left/Right)
-    if (ballX < BALL_RADIUS) {
-      ballX = BALL_RADIUS;
+    if (ballX < br) {
+      ballX = br;
       ballDX = -ballDX;
-    } else if (ballX > canvas.width - BALL_RADIUS) {
-      ballX = canvas.width - BALL_RADIUS;
+    } else if (ballX > canvas.width - br) {
+      ballX = canvas.width - br;
       ballDX = -ballDX;
     }
 
     // Ceiling collision
-    if (ballY < BALL_RADIUS) {
-      ballY = BALL_RADIUS;
+    if (ballY < br) {
+      ballY = br;
       ballDY = -ballDY;
     }
 
     // Paddle collision
     const paddleTop = canvas.height - PADDLE_HEIGHT - 10;
-    if (ballDY > 0 && 
-        ballY + BALL_RADIUS > paddleTop && 
-        ballY - BALL_RADIUS < paddleTop + PADDLE_HEIGHT &&
-        ballX > paddleX && 
+    if (ballDY > 0 &&
+        ballY + br > paddleTop &&
+        ballY - br < paddleTop + PADDLE_HEIGHT &&
+        ballX > paddleX &&
         ballX < paddleX + PADDLE_WIDTH) {
-      
-      // Bounce off paddle
+
       ballDY = -Math.abs(ballDY);
-      // Snap to above paddle to avoid multi-collision
-      ballY = paddleTop - BALL_RADIUS;
-      
-      // Angle based on where it hit the paddle
+      ballY = paddleTop - br;
+
       let hitPos = (ballX - (paddleX + PADDLE_WIDTH / 2)) / (PADDLE_WIDTH / 2);
       ballDX = hitPos * BALL_SPEED * 1.5;
 
       if (Sound) Sound.tone(400, 100, 'sine', 0.2);
     }
-    // Bottom collision (Bumpers or Game Over)
-    else if (ballY + BALL_RADIUS > canvas.height) {
+    // Bottom collision — lose a heart
+    else if (ballY + br > canvas.height) {
+      giantBall = false;
       heartsActive--;
+      flashAlpha = 0.45;
       if (heartsActive > 0) {
         updateHeartsUI();
         ballDY = -Math.abs(ballDY);
-        ballY = canvas.height - BALL_RADIUS - 5; // Bounce up
+        ballY = canvas.height - br - 5;
         if (Sound) Sound.tone(150, 150, 'square', 0.2);
       } else {
         gameOver();
       }
     }
 
+    // Update particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.life -= 0.04 * dt;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+
     // Move and catch powerups
     for (let i = powerups.length - 1; i >= 0; i--) {
       let p = powerups[i];
       p.y += 2 * dt;
+      p.angle += 0.05 * dt;
 
       if (p.y > canvas.height - PADDLE_HEIGHT - 20 &&
           p.y < canvas.height - 10 &&
           p.x > paddleX && p.x < paddleX + PADDLE_WIDTH) {
 
-        if (heartsActive < HEART_COUNT) {
+        if (p.type === 'giant') {
+          giantBall = true;
+          if (Sound) Sound.tone(300, 300, 'sine', 0.3);
+        } else if (heartsActive < HEART_COUNT) {
           heartsActive++;
           updateHeartsUI();
           if (Sound) Sound.tone(600, 200, 'triangle', 0.3);
         }
         powerups.splice(i, 1);
-      }
-      else if (p.y > canvas.height) {
+      } else if (p.y > canvas.height) {
         powerups.splice(i, 1);
       }
     }
@@ -299,20 +328,26 @@ function handleTouchMove(e) {
           let bx = c * (blockWidth + BLOCK_PADDING) + BLOCK_OFFSET_LEFT;
           let by = r * (blockHeight + BLOCK_PADDING) + BLOCK_OFFSET_TOP;
 
-          if (ballX + BALL_RADIUS > bx && ballX - BALL_RADIUS < bx + blockWidth && 
-              ballY + BALL_RADIUS > by && ballY - BALL_RADIUS < by + blockHeight) {
+          const br = effectiveBallR();
+          if (ballX + br > bx && ballX - br < bx + blockWidth &&
+              ballY + br > by && ballY - br < by + blockHeight) {
             ballDY = -ballDY;
             b.status--;
             score += 10;
 
             if (Sound) Sound.tone(800, 50, 'triangle', 0.2);
 
-            if (b.status === 0 && b.type === 'powerup') {
-              powerups.push({
-                x: bx + blockWidth / 2,
-                y: by + blockHeight / 2,
-                type: 'repair'
-              });
+            if (b.status === 0) {
+              spawnParticles(bx + blockWidth / 2, by + blockHeight / 2, getBlockDestroyColor(b, r));
+              if (b.type === 'powerup') {
+                const dropType = Math.random() < 0.3 ? 'giant' : 'repair';
+                powerups.push({
+                  x: bx + blockWidth / 2,
+                  y: by + blockHeight / 2,
+                  type: dropType,
+                  angle: 0
+                });
+              }
             }
           }
         }
@@ -341,11 +376,20 @@ function handleTouchMove(e) {
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    drawStars();
     drawBlocks();
+    drawParticles();
     drawBall();
     drawPaddle();
     drawPowerups();
     drawScore();
+
+    if (flashAlpha > 0) {
+      ctx.globalAlpha = flashAlpha;
+      ctx.fillStyle = '#E91E63';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.globalAlpha = 1;
+    }
   }
 
   function drawScore() {
@@ -359,24 +403,109 @@ function handleTouchMove(e) {
   }
 
   function drawPowerups() {
+    const t = performance.now() * 0.003;
     powerups.forEach(p => {
-      ctx.font = '24px serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('⭐', p.x, p.y);
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = "#FFEB3B";
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      if (p.type === 'giant') {
+        const pulse = 1 + 0.2 * Math.sin(t * 3 + p.angle);
+        const r = BALL_RADIUS * 2 * pulse;
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#69F0AE';
+        ctx.fillStyle = '#69F0AE';
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.rotate(p.angle);
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = '#FFEB3B';
+        ctx.fillStyle = '#FFEB3B';
+        drawStarShape(12, 5, 5);
+        ctx.fill();
+      }
+      ctx.restore();
     });
     ctx.shadowBlur = 0;
   }
 
-  function drawBall() {
+  function drawStarShape(outerR, innerR, points) {
     ctx.beginPath();
-    ctx.arc(ballX, ballY, BALL_RADIUS, 0, Math.PI * 2);
-    ctx.fillStyle = "#FFEB3B";
+    for (let i = 0; i < points * 2; i++) {
+      const r = i % 2 === 0 ? outerR : innerR;
+      const a = (i / (points * 2)) * Math.PI * 2 - Math.PI / 2;
+      if (i === 0) ctx.moveTo(r * Math.cos(a), r * Math.sin(a));
+      else ctx.lineTo(r * Math.cos(a), r * Math.sin(a));
+    }
+    ctx.closePath();
+  }
+
+  function initStars() {
+    stars = [];
+    for (let i = 0; i < 60; i++) {
+      stars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 1.5 + 0.5,
+        phase: Math.random() * Math.PI * 2,
+        speed: Math.random() * 0.8 + 0.3
+      });
+    }
+  }
+
+  function drawStars() {
+    const t = performance.now() * 0.001;
+    stars.forEach(s => {
+      const alpha = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(t * s.speed + s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${alpha.toFixed(2)})`;
+      ctx.fill();
+    });
+  }
+
+  function spawnParticles(x, y, color) {
+    const count = 8;
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2;
+      const speed = 2 + Math.random() * 2;
+      particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 1.0,
+        color
+      });
+    }
+  }
+
+  function drawParticles() {
+    particles.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 3 * p.life, 0, Math.PI * 2);
+      ctx.globalAlpha = p.life;
+      ctx.fillStyle = p.color;
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  function getBlockDestroyColor(b, r) {
+    if (b.type === 'powerup') return '#00F2FF';
+    if (b.type === 'strong') return '#BA68C8';
+    const colors = ['#4CAF50', '#FFEB3B', '#FF9800', '#F44336'];
+    return colors[r % colors.length];
+  }
+
+  function drawBall() {
+    const br = effectiveBallR();
+    const color = giantBall ? '#69F0AE' : '#FFEB3B';
+    ctx.beginPath();
+    ctx.arc(ballX, ballY, br, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.shadowBlur = giantBall ? 25 : 15;
+    ctx.shadowColor = color;
     ctx.fill();
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = "#FFEB3B";
     ctx.closePath();
     ctx.shadowBlur = 0;
   }
