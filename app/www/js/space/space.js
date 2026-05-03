@@ -31,6 +31,8 @@ const SpaceHero = (function() {
   let animationId;
   let lastTime = 0;
   let containerWidth, containerHeight;
+let touchStartTime = 0;
+const TOUCH_LAUNCH_GRACE_MS = 150;
 
   function init() {
     canvas = document.getElementById('game-canvas');
@@ -150,12 +152,13 @@ const SpaceHero = (function() {
     }
   }
 
-  function handleStart() {
-    if (gameActive && !ballLaunched) {
-      if (Sound) Sound.init();
-      ballLaunched = true;
-    }
+function handleStart() {
+  touchStartTime = Date.now();
+  if (gameActive && !ballLaunched) {
+    if (Sound) Sound.init();
+    ballLaunched = true;
   }
+}
 
   function resetGame() {
     resetGameState();
@@ -168,14 +171,18 @@ const SpaceHero = (function() {
     }
   }
 
-  function handleTouchMove(e) {
-    e.preventDefault();
-    const touch = e.touches[0];
-    const relativeX = touch.clientX - canvas.offsetLeft;
-    if (relativeX > 0 && relativeX < canvas.width) {
-      paddleX = relativeX - PADDLE_WIDTH / 2;
-    }
+function handleTouchMove(e) {
+  e.preventDefault();
+  const timeSinceTouchStart = Date.now() - touchStartTime;
+  if (timeSinceTouchStart < TOUCH_LAUNCH_GRACE_MS) {
+    return;
   }
+  const touch = e.touches[0];
+  const relativeX = touch.clientX - canvas.offsetLeft;
+  if (relativeX > 0 && relativeX < canvas.width) {
+    paddleX = relativeX - PADDLE_WIDTH / 2;
+  }
+}
 
   function gameLoop(timestamp) {
     let delta = timestamp - lastTime;
