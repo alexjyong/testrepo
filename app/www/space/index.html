@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="msapplication-tap-highlight" content="no">
+    <meta name="color-scheme" content="light dark">
+    <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height, target-densitydpi=device-dpi" />
+    <link rel="stylesheet" href="../css/base.css" type="text/css">
+    <link rel="stylesheet" href="../css/space.css" type="text/css">
+    <title>SproutPlay - Space Hero!</title>
+</head>
+<body class="space-app">
+    <div class="app-container">
+        <!-- Header -->
+        <header class="space-header">
+            <button id="space-back" class="back-button" aria-label="Back to hub">← Back</button>
+            <h1 class="space-title">Space Hero</h1>
+        </header>
+
+        <!-- Game Area -->
+        <div id="game-container" class="game-container">
+            <canvas id="game-canvas"></canvas>
+            
+            <!-- Heart Containers! like zelda! (HUD) -->
+            <div id="heart-container" class="heart-container">
+                <div class="heart" id="heart-1"></div>
+                <div class="heart" id="heart-2"></div>
+                <div class="heart" id="heart-3"></div>
+            </div>
+
+            <!-- Start/Message Overlay -->
+            <div id="game-overlay" class="game-overlay">
+                <div class="overlay-content">
+                    <div class="overlay-icon">🚀</div>
+                    <h2 id="overlay-title">Ready to Launch?</h2>
+                    <button id="start-btn" class="start-button">Tap to Start! ✨</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Over Overlay -->
+  <div id="gameover" class="gameover-overlay" style="display:none">
+    <div class="gameover-card">
+      <div class="gameover-emoji">💫</div>
+      <h2>Game Over!</h2>
+      <p>Score: <span id="gameover-score">0</span></p>
+      <button id="gameover-play-again-btn" class="play-again-button">Play Again 🚀</button>
+      <button id="gameover-back-btn" class="play-again-button secondary">Back to Hub</button>
+    </div>
+  </div>
+
+  <!-- Celebration Overlay -->
+        <div id="celebration" class="celebration-overlay" style="display:none">
+            <div class="celebration-card">
+                <div class="celebration-emoji">🌟</div>
+                <h2>Space Hero!</h2>
+                <p>You cleared all the space junk!</p>
+                <button id="play-again-btn" class="play-again-button">Play Again 🚀</button>
+                <button id="celebration-back" class="play-again-button secondary">Back to Hub</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/sound.js"></script>
+    <script src="../js/space/space.js"></script>
+</body>
+</html>

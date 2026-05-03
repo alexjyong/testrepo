@@ -3,7 +3,7 @@
  * Generated tones for kids app feedback sounds
  */
 
-const Sound = (function() {
+var Sound = (function() {
   var audioCtx = null;
   var enabled = true;
 
@@ -34,7 +34,9 @@ const Sound = (function() {
    * @param {number} volume - 0.0 to 1.0
    */
   function tone(frequency, duration, type, volume) {
-    if (!enabled || !audioCtx) return;
+    if (!enabled) return;
+    init(); // Self-heal: try to create/resume context
+    if (!audioCtx) return;
 
     try {
       var osc = audioCtx.createOscillator();
@@ -59,8 +61,7 @@ const Sound = (function() {
    * Card flip sound - short click
    */
   function flip() {
-    if (!enabled || !audioCtx) return;
-    init();
+    if (!enabled) return;
     tone(800, 50, 'sine', 0.2);
   }
 
@@ -68,8 +69,9 @@ const Sound = (function() {
    * Match found - happy ascending chime
    */
   function match() {
-    if (!enabled || !audioCtx) return;
+    if (!enabled) return;
     init();
+    if (!audioCtx) return;
     var now = audioCtx.currentTime;
 
     // Play 3 ascending notes
@@ -91,8 +93,9 @@ const Sound = (function() {
    * No match - gentle descending boop
    */
   function noMatch() {
-    if (!enabled || !audioCtx) return;
+    if (!enabled) return;
     init();
+    if (!audioCtx) return;
     var now = audioCtx.currentTime;
 
     [400, 300].forEach(function(freq, i) {
@@ -113,8 +116,9 @@ const Sound = (function() {
    * Celebration fanfare
    */
   function celebrate() {
-    if (!enabled || !audioCtx) return;
+    if (!enabled) return;
     init();
+    if (!audioCtx) return;
     var now = audioCtx.currentTime;
 
     // Ascending scale
@@ -140,6 +144,7 @@ const Sound = (function() {
    */
   function phonics(letter) {
     if (!enabled) return;
+    init(); // Native audio might not need WebAudio context, but good for consistent behavior
 
     var letterUpper = letter.toUpperCase();
     var assetId = 'phonics_' + letterUpper;
@@ -228,8 +233,9 @@ const Sound = (function() {
    * Plays each letter sound in sequence, then a celebration chord
    */
   function speakWord(word) {
-    if (!enabled || !audioCtx) return;
+    if (!enabled) return;
     init();
+    if (!audioCtx) return;
     var now = audioCtx.currentTime;
     var chars = word.toUpperCase().split('');
 
@@ -294,16 +300,17 @@ const Sound = (function() {
     return enabled;
   }
 
-  return {
-    init,
-    flip,
-    match,
-    noMatch,
-    celebrate,
-    phonics,
-    speak,
-    speakWord,
-    setEnabled,
-    isEnabled
+  return { 
+    init, 
+    flip, 
+    match, 
+    noMatch, 
+    celebrate, 
+    phonics, 
+    speak, 
+    speakWord, 
+    setEnabled, 
+    isEnabled, 
+    tone 
   };
 })();

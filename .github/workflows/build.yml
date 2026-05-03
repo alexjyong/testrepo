@@ -2,8 +2,6 @@ name: Build Android Version
 
 on:
   workflow_dispatch:
-    inputs:
-      output_type:
 
 jobs:
 
@@ -35,10 +33,9 @@ jobs:
           ./build.sh
 
       - name: Upload APK artifact
-        if: inputs.output_type == 'apk'
         uses: actions/upload-artifact@v7
         with:
           name: sproutplay-apk
           if-no-files-found: error
-          path: app/android/app/build/outputs/apk/release/app-debug.apk
+          path: app/android/app/build/outputs/apk/debug/app-debug.apk
 
