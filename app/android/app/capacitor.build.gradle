@@ -12,6 +12,7 @@ dependencies {
     implementation project(':capacitor-community-native-audio')
     implementation project(':capacitor-community-text-to-speech')
     implementation project(':capacitor-app')
+    implementation project(':capawesome-capacitor-screen-orientation')
 
 }
 

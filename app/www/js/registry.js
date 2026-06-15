@@ -123,7 +123,7 @@ const AppRegistry = (function() {
       path: 'monster/index.html'
     });
 
-    // Register placeholder apps for future mini-apps
+    // Register Space Hero as a real app
     register({
       id: 'space',
       name: 'Space Hero',
@@ -132,6 +132,17 @@ const AppRegistry = (function() {
       backgroundColor: 'color-2',
       placeholder: false,
       path: 'space/index.html'
+    });
+
+    // Register Piano Play as a real app
+    register({
+      id: 'piano',
+      name: 'Piano Play',
+      icon: '🎹',
+      description: 'Tap the keys and make music!',
+      backgroundColor: 'color-4',
+      placeholder: false,
+      path: 'piano/index.html'
     });
 
     register({

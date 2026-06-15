@@ -23,6 +23,9 @@ const App = (function() {
    * Called when DOM is ready
    */
   function onReady() {
+    // Ensure orientation is unlocked (safety net for killed WebView)
+    unlockOrientation();
+
     // Load settings
     if (typeof Settings !== 'undefined') {
       Settings.load();
@@ -102,6 +105,19 @@ const App = (function() {
     }
   }
   
+  /**
+   * Unlock orientation to device default (safety net).
+   * When the OS kills the WebView while a mini-app had orientation locked,
+   * the lock persists. This ensures the hub always starts unlocked.
+   */
+  function unlockOrientation() {
+    if (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.ScreenOrientation) {
+      Capacitor.Plugins.ScreenOrientation.unlock().catch(function(err) {
+        console.warn('[App] Failed to unlock orientation:', err);
+      });
+    }
+  }
+
   /**
    * Setup hardware back button handler
    */

@@ -24,6 +24,9 @@ A breakout-style brick breaker with a paddle, ball, and colored blocks. Features
 ### 🐲 Feed the Monster
 A drag-and-drop math game with three difficulty levels. A hungry monster displays a target number on its sign and speaks it aloud — kids drag the right amount of food into its mouth. Wrong food bounces back with a "Yuck!" shake. Level 1 targets 1–5, Level 2 targets 1–7, Level 3 is missing-addend mode ("3 + ? = 5 🍇") where some items are already eaten and the child feeds only the remainder. Win five rounds in a row to level up; progress persists across sessions.
 
+### 🎹 Piano Play
+A landscape-mode piano that fills the screen with dynamically-sized keys (from 1 to 3 octaves, depending on device width). Tap keys to hear synthesized musical notes — no audio files needed, everything runs on the Web Audio API. Slide your finger across keys for continuous glissando playing. Keys light up when pressed for visual feedback. Note labels (letter names) are optionally displayable via a toggle button. Designed for ages 3–5: no wrong answers, just explore and make music.
+
 ### 🏠 Hub
 The main menu is a colorful grid of app icons. Tap one to launch that mini-app. Hit the back button to return. A ⚙️ Settings button in the top-right corner opens settings for the app:
 * Toggle **Sound Effects** on/off  and toggle **Lock SproutPlay** on/off. 
