@@ -107,9 +107,9 @@ description: "Task list for Piano Play mini-app implementation"
 
 - [x] T018 [P] Color-key mapping in `app/www/css/piano.css` — assign distinct bright colors to each white key (following the existing color palette: `--color-primary`, `--color-accent-1`, `--color-secondary`, etc.) so each key is visually unique and kid-friendly
 - [x] T019 [P] Volume level tuning in `app/www/js/piano/piano.js` — set gain to 0.5 (balanced volume, not too loud for children's ears); verify triangle wave frequency response is pleasant across the full C4–B4 range
-- [ ] T020 Update `README.md` — add Piano Play to the list of implemented mini-apps with 🎹 icon and brief description
-- [ ] T021 Build and smoke test — run `./build.sh`, install APK on device, execute quickstart.md Tests 1–5 to verify MVP works end-to-end
-- [ ] T022 Clean up — remove any console.log debug statements, verify no JavaScript errors in browser DevTools, confirm touch targets meet 48dp minimum
+- [X] T020 Update `README.md` — add Piano Play to the list of implemented mini-apps with 🎹 icon and brief description
+- [X] T021 Build and smoke test — run `./build.sh`, install APK on device, execute quickstart.md Tests 1–5 to verify MVP works end-to-end
+- [X] T022 Clean up — remove any console.log debug statements, verify no JavaScript errors in browser DevTools, confirm touch targets meet 48dp minimum
 
 ---
 
