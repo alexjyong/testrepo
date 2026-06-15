@@ -1,7 +1,7 @@
 {
   "name": "dev.alexjyong.sproutplay",
   "displayName": "SproutPlay",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A kids app hub with fun mini-apps",
   "scripts": {
     "build": "npx cap sync"
