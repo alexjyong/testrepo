@@ -25,6 +25,10 @@ const Piano = (function () {
     var labelsVisible   = false;
     var currentKeys     = []; // dynamically computed based on screen width
 
+    // ── Finger sliding (glissando) tracking ───────────────────────
+    var activeTouchId   = null; // touch identifier currently pressing a key
+    var currentKey      = null; // key element currently active under the touch
+
     // ── All available notes starting from C4 (up to 3 octaves) ────
     var ALL_NOTES = [
         { note: 'C4',  frequency: 261.63, isBlack: false, label: 'C'  },
@@ -254,66 +258,106 @@ const Piano = (function () {
         keyboardEl.classList.add('ready');
     }
 
-    // ── Touch handling ────────────────────────────────────────────
+    // ── Touch handling (with finger sliding / glissando support) ───
+    function findKeyAtPoint(x, y) {
+        var el = document.elementFromPoint(x, y);
+        if (!el) return null;
+        return el.closest('.key');
+    }
+
+    function activateKey(key) {
+        if (!key || !currentKey || currentKey !== key) {
+            // Stop previous key if different (or no previous)
+            if (currentKey) {
+                PianoAudio.stopNote(currentKey);
+                currentKey.classList.remove('active');
+            }
+            // Play new key
+            if (key) {
+                var freq = parseFloat(key.dataset.frequency);
+                PianoAudio.playNote(freq, key);
+                key.classList.add('active');
+                currentKey = key;
+            } else {
+                currentKey = null;
+            }
+        }
+    }
+
+    function resetActiveKey() {
+        if (currentKey) {
+            PianoAudio.stopNote(currentKey);
+            currentKey.classList.remove('active');
+            currentKey = null;
+        }
+        activeTouchId = null;
+    }
+
     function wireTouchHandling() {
-        // Prevent default touch behaviors on the keyboard container
+        // ── Touch events ────────────────────────────────────────────
         keyboardEl.addEventListener('touchstart', function (e) {
             // Allow touch events to propagate to key elements only
             if (!e.target.classList.contains('key')) return;
         }, { passive: true });
 
         keyboardEl.addEventListener('touchstart', function (e) {
-            var key = e.target.closest('.key');
+            var touch = e.changedTouches[0];
+            activeTouchId = touch.identifier;
+            var key = findKeyAtPoint(touch.clientX, touch.clientY);
             if (!key) return;
             e.preventDefault();
+            activateKey(key);
+        }, { passive: false });
 
-            var freq = parseFloat(key.dataset.frequency);
-            PianoAudio.playNote(freq, key);
-            key.classList.add('active');
+        keyboardEl.addEventListener('touchmove', function (e) {
+            for (var i = 0; i < e.changedTouches.length; i++) {
+                var touch = e.changedTouches[i];
+                if (touch.identifier !== activeTouchId) continue;
+                var key = findKeyAtPoint(touch.clientX, touch.clientY);
+                activateKey(key); // null if finger slid off keyboard
+            }
         }, { passive: false });
 
         keyboardEl.addEventListener('touchend', function (e) {
-            var key = e.target.closest('.key');
-            if (!key) return;
-            e.preventDefault();
-
-            PianoAudio.stopNote(key);
-            key.classList.remove('active');
+            for (var i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier === activeTouchId) {
+                    resetActiveKey();
+                    break;
+                }
+            }
         }, { passive: false });
 
         keyboardEl.addEventListener('touchcancel', function (e) {
-            var key = e.target.closest('.key');
-            if (!key) return;
-
-            PianoAudio.stopNote(key);
-            key.classList.remove('active');
+            resetActiveKey();
         });
 
-        // Mouse fallback for desktop testing
+        // ── Mouse events (desktop testing) ──────────────────────────
+        var mouseDown = false;
+
         keyboardEl.addEventListener('mousedown', function (e) {
             var key = e.target.closest('.key');
             if (!key) return;
             e.preventDefault();
+            mouseDown = true;
+            activateKey(key);
+        });
 
-            var freq = parseFloat(key.dataset.frequency);
-            PianoAudio.playNote(freq, key);
-            key.classList.add('active');
+        keyboardEl.addEventListener('mousemove', function (e) {
+            if (!mouseDown) return;
+            var key = findKeyAtPoint(e.clientX, e.clientY);
+            activateKey(key);
         });
 
         keyboardEl.addEventListener('mouseup', function (e) {
-            var key = e.target.closest('.key');
-            if (!key) return;
-
-            PianoAudio.stopNote(key);
-            key.classList.remove('active');
+            if (!mouseDown) return;
+            mouseDown = false;
+            resetActiveKey();
         });
 
         keyboardEl.addEventListener('mouseleave', function (e) {
-            var key = e.target.closest('.key');
-            if (!key) return;
-
-            PianoAudio.stopNote(key);
-            key.classList.remove('active');
+            if (!mouseDown) return;
+            mouseDown = false;
+            resetActiveKey();
         });
     }
 
