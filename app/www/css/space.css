@@ -6,6 +6,12 @@
     touch-action: none;
 }
 
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
 .space-header {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
@@ -34,7 +40,8 @@
 .game-container {
     position: relative;
     width: 100%;
-    height: calc(100vh - 60px);
+    flex: 1;
+    min-height: 0;
     background: radial-gradient(circle at center, #1b0a33 0%, #0d0221 100%);
     overflow: hidden;
 }
