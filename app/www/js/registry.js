@@ -146,6 +146,16 @@ const AppRegistry = (function() {
     });
 
     register({
+      id: 'tracer',
+      name: 'Tracer',
+      icon: '✏️',
+      description: 'Trace numbers and letters!',
+      backgroundColor: 'color-5',
+      placeholder: false,
+      path: 'tracer/index.html'
+    });
+
+    register({
       id: 'coming-soon-2',
       name: 'Stay Tuned',
       icon: '🎁',

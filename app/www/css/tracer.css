@@ -1,0 +1,196 @@
+/* SproutPlay - Tracer Mini-App Styles */
+/* Kid-friendly tracing game with Canvas rendering */
+
+/* ── Header (overrides base.css back-button positioning) ── */
+.tracer-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: var(--spacing-md);
+    /* Override base.css position:absolute on .back-button for flex headers */
+}
+
+.tracer-header .back-button {
+    position: static; /* Override base.css absolute positioning */
+}
+
+.tracer-title {
+    font-size: var(--font-size-xl);
+    color: var(--color-primary);
+    margin: 0;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+/* ── Controls (Mode + Difficulty Selectors) ── */
+.tracer-controls {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.control-select {
+    min-width: 120px;
+    min-height: 48px; /* Touch target comfort */
+    font-size: var(--font-size-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface, var(--color-white));
+    color: var(--color-text, var(--color-dark));
+    border: 2px solid var(--color-primary);
+    font-family: var(--font-family);
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    text-align: center;
+}
+
+.control-select:focus {
+    outline: 3px solid var(--color-accent-1);
+    outline-offset: 2px;
+}
+
+/* Custom dropdown arrow */
+.control-select::-ms-expand {
+    display: none;
+}
+
+/* ── Game Area & Canvas ── */
+.game-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+}
+
+.tracer-canvas {
+    display: block;
+    width: 100%;
+    height: calc(100vh - 160px); /* Header + controls space */
+    touch-action: none; /* Prevent scrolling during tracing */
+    background: var(--color-surface-light, #FAFBFC);
+    cursor: crosshair;
+}
+
+/* ── Celebration Overlay ── */
+.celebration-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.celebration-card {
+    background: var(--color-surface, var(--color-white));
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-xl);
+    text-align: center;
+    max-width: 85%;
+    box-shadow: var(--shadow-lg);
+    animation: popIn 0.3s ease-out;
+}
+
+@keyframes popIn {
+    0% { transform: scale(0.5); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.celebration-emoji {
+    font-size: 64px;
+    animation: bounce 1s infinite;
+    display: block;
+    margin-bottom: var(--spacing-sm);
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+}
+
+.celebration-card h2 {
+    font-size: var(--font-size-xlarge);
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.celebration-card p {
+    font-size: var(--font-size-base);
+    color: var(--color-dark);
+    margin-bottom: var(--spacing-md);
+}
+
+.play-again-button {
+    display: block;
+    width: 100%;
+    margin-bottom: var(--spacing-sm);
+    font-size: var(--font-size-large);
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    background: var(--color-primary);
+    color: var(--color-white);
+    border: none;
+    font-family: var(--font-family);
+    box-shadow: var(--shadow-md);
+}
+
+.play-again-button.secondary {
+    background: var(--color-accent-4, #AA96DA);
+}
+
+.play-again-button:active {
+    transform: scale(0.95);
+}
+
+/* ── Progress Indicator ── */
+.progress-bar {
+    display: flex;
+    gap: var(--spacing-xs);
+    justify-content: center;
+    padding: var(--spacing-xs);
+}
+
+.progress-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--color-light-gray);
+    border: 2px solid var(--color-primary);
+    transition: background 0.3s ease;
+}
+
+.progress-dot.filled {
+    background: var(--color-primary);
+}
+
+/* ── Hint Animation ── */
+.hint-pulse {
+    animation: hintPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes hintPulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+/* ── Safe Area Insets (for notched devices) ── */
+@supports (padding-top: env(safe-area-inset-top)) {
+    .tracer-header {
+        padding-top: calc(var(--spacing-md) + env(safe-area-inset-top));
+    }
+}
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .tracer-canvas {
+        height: calc(100vh - 160px + env(safe-area-inset-bottom));
+    }
+}

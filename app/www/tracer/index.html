@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<!--
+  ============================================================
+  SPROUTPLAY - TRACER MINI-APP
+  Trace numbers (0-100) and letters (A-Z) with your finger!
+  ============================================================
+-->
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="msapplication-tap-highlight" content="no">
+    <meta name="color-scheme" content="light dark">
+    <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height, target-densitydpi=device-dpi" />
+
+    <!-- base.css MUST come first — provides shared button, back-button, and layout resets -->
+    <link rel="stylesheet" href="../css/base.css" type="text/css" media="screen">
+
+    <!-- Tracer-specific styles -->
+    <link rel="stylesheet" href="../css/tracer.css" type="text/css" media="screen">
+
+    <title>SproutPlay - Tracer!</title>
+</head>
+<body>
+    <div class="app-container">
+
+        <!-- ── Header ── -->
+        <!--
+          The header uses flexbox so the back button stays in normal flow.
+          base.css sets position:absolute on .back-button — the mini-app CSS
+          MUST override this with position:static when using flex/grid headers.
+        -->
+        <header class="tracer-header">
+            <button id="tracer-back" class="back-button" aria-label="Back to hub">← Back</button>
+            <h1 class="tracer-title">Tracer</h1>
+        </header>
+
+        <!-- ── Controls (Mode + Difficulty) ── -->
+        <div id="controls" class="tracer-controls">
+            <select id="mode-select" class="control-select" aria-label="Game mode">
+                <option value="numbers">Numbers ✏️</option>
+                <option value="letters">Letters 🔤</option>
+                <option value="multi-digit">Multi-Digit 🔢</option>
+                <option value="words">Words 📝</option>
+            </select>
+            <select id="difficulty-select" class="control-select" aria-label="Difficulty level">
+                <option value="easy">Easy ⭐</option>
+                <option value="medium">Medium ⭐⭐</option>
+                <option value="hard">Hard ⭐⭐⭐</option>
+            </select>
+        </div>
+
+        <!-- ── Canvas for Tracing ── -->
+        <div id="game-area" class="game-area">
+            <canvas id="tracer-canvas" class="tracer-canvas"></canvas>
+        </div>
+
+        <!-- ── Celebration overlay ── -->
+        <div id="celebration" class="celebration-overlay" style="display:none">
+            <div class="celebration-card">
+                <div class="celebration-emoji">🎉</div>
+                <h2 id="celebration-title">Great Tracing!</h2>
+                <p id="celebration-msg">You did it!</p>
+                <button id="play-again-btn" class="play-again-button">Play Again 🎮</button>
+                <button id="celebration-back" class="play-again-button secondary">Back to Hub</button>
+            </div>
+        </div>
+
+    </div><!-- /.app-container -->
+
+    <!--
+      Script load order matters — do not rearrange:
+        1. sound.js       — shared Sound module (Web Audio + TTS + NativeAudio phonics)
+        2. mini-app-back  — registers Android hardware back button → hub navigation
+        3. paths.js       — SVG path data for all characters
+        4. tracer.js      — main game logic (runs last)
+    -->
+    <script src="../js/sound.js"></script>
+    <script src="../js/mini-app-back.js"></script>
+    <script src="../js/tracer/paths.js"></script>
+    <script src="../js/tracer/tracer.js"></script>
+
+</body>
+</html>
