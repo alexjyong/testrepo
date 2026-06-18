@@ -1,60 +1,128 @@
 /* SproutPlay - Tracer Mini-App Styles */
-/* Kid-friendly tracing game with Canvas rendering */
 
-/* ── Header (overrides base.css back-button positioning) ── */
+/* ── App Container ── */
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: linear-gradient(180deg, #EBF5FB 0%, #D6EAF8 50%, #D5F5E3 100%);
+    overflow: hidden;
+}
+
+/* ── Header ── */
 .tracer-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
     display: flex;
     align-items: center;
     justify-content: center;
-    position: relative;
-    padding: var(--spacing-md);
-    /* Override base.css position:absolute on .back-button for flex headers */
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #5DADE2, #3498DB);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
 .tracer-header .back-button {
-    position: static; /* Override base.css absolute positioning */
+    position: absolute;
+    left: 12px;
+    background: rgba(255,255,255,0.25);
+    color: #fff;
+    border: 2px solid rgba(255,255,255,0.6);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 16px;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.tracer-header .back-button:active {
+    background: rgba(255,255,255,0.4);
 }
 
 .tracer-title {
-    font-size: var(--font-size-xl);
-    color: var(--color-primary);
-    margin: 0;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    font-size: 28px;
+    font-weight: 700;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
 }
 
-/* ── Controls (Mode + Difficulty Selectors) ── */
-.tracer-controls {
-    display: flex;
-    gap: var(--spacing-md);
-    justify-content: center;
-    padding: var(--spacing-sm) var(--spacing-md);
-    flex-wrap: wrap;
+/* ── Mode Bar (2x2 button grid) ── */
+.mode-bar {
+    margin-top: 60px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 12px 16px 8px;
+    background: linear-gradient(135deg, #D6EAF8, #EBF5FB);
 }
 
-.control-select {
-    min-width: 120px;
-    min-height: 48px; /* Touch target comfort */
-    font-size: var(--font-size-md);
-    padding: var(--spacing-sm) var(--spacing-md);
-    border-radius: var(--radius-lg);
-    background: var(--color-surface, var(--color-white));
-    color: var(--color-text, var(--color-dark));
-    border: 2px solid var(--color-primary);
-    font-family: var(--font-family);
-    appearance: none;
-    -webkit-appearance: none;
+.mode-btn {
+    min-height: 48px;
+    min-width: 48px;
+    padding: 10px 14px;
+    font-size: 16px;
+    font-weight: 700;
+    border: 3px solid transparent;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.7);
+    color: #2C3E50;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.08);
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
     cursor: pointer;
-    text-align: center;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
-.control-select:focus {
-    outline: 3px solid var(--color-accent-1);
-    outline-offset: 2px;
+.mode-btn.active {
+    background: #5DADE2;
+    color: #fff;
+    border-color: #3498DB;
+    box-shadow: 0 3px 0 #2980B9;
 }
 
-/* Custom dropdown arrow */
-.control-select::-ms-expand {
-    display: none;
+.mode-btn:active {
+    transform: scale(0.95);
+}
+
+/* ── Difficulty Bar (3-button row) ── */
+.difficulty-bar {
+    display: flex;
+    gap: 8px;
+    padding: 4px 16px 10px;
+    background: linear-gradient(135deg, #D6EAF8, #EBF5FB);
+}
+
+.diff-btn {
+    flex: 1;
+    min-height: 44px;
+    min-width: 48px;
+    padding: 8px 10px;
+    font-size: 14px;
+    font-weight: 700;
+    border: 3px solid transparent;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.6);
+    color: #555;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.06);
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.diff-btn.active {
+    background: #F1C40F;
+    color: #333;
+    border-color: #F39C12;
+    box-shadow: 0 3px 0 #D4AC0D;
+}
+
+.diff-btn:active {
+    transform: scale(0.95);
 }
 
 /* ── Game Area & Canvas ── */
@@ -70,106 +138,114 @@
 .tracer-canvas {
     display: block;
     width: 100%;
-    height: calc(100vh - 160px); /* Header + controls space */
-    touch-action: none; /* Prevent scrolling during tracing */
-    background: var(--color-surface-light, #FAFBFC);
+    flex: 1;
+    touch-action: none;
+    background: rgba(255,255,255,0.5);
     cursor: crosshair;
 }
 
 /* ── Celebration Overlay ── */
 .celebration-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    display: none;
-    justify-content: center;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
     align-items: center;
-    z-index: 1000;
+    justify-content: center;
+    z-index: 2000;
 }
 
 .celebration-card {
-    background: var(--color-surface, var(--color-white));
-    padding: var(--spacing-xl);
-    border-radius: var(--radius-xl);
+    background: linear-gradient(135deg, #D6EAF8, #EBF5FB);
+    border-radius: 24px;
+    padding: 32px 24px;
+    max-width: 340px;
+    width: 90%;
     text-align: center;
-    max-width: 85%;
-    box-shadow: var(--shadow-lg);
-    animation: popIn 0.3s ease-out;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.3);
+    animation: celebrationPop 0.5s ease;
 }
 
-@keyframes popIn {
+@keyframes celebrationPop {
     0% { transform: scale(0.5); opacity: 0; }
+    80% { transform: scale(1.05); }
     100% { transform: scale(1); opacity: 1; }
 }
 
 .celebration-emoji {
-    font-size: 64px;
-    animation: bounce 1s infinite;
-    display: block;
-    margin-bottom: var(--spacing-sm);
+    font-size: 72px;
+    line-height: 1;
+    margin-bottom: 12px;
+    animation: celebrationSpin 1s ease;
 }
 
-@keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-20px); }
+@keyframes celebrationSpin {
+    0% { transform: rotate(0deg) scale(0); }
+    100% { transform: rotate(360deg) scale(1); }
 }
 
 .celebration-card h2 {
-    font-size: var(--font-size-xlarge);
-    color: var(--color-primary);
-    margin-bottom: var(--spacing-sm);
+    font-size: 32px;
+    font-weight: 800;
+    color: #2C3E50;
+    margin-bottom: 8px;
 }
 
 .celebration-card p {
-    font-size: var(--font-size-base);
-    color: var(--color-dark);
-    margin-bottom: var(--spacing-md);
+    font-size: 18px;
+    color: #555;
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.celebration-meaning {
+    font-size: 20px;
+    font-weight: 700;
+    color: #E67E22;
+    margin-bottom: 20px;
+}
+
+.celebration-stars {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    font-size: 40px;
+    animation: starPulse 1s ease infinite;
+}
+
+@keyframes starPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
 }
 
 .play-again-button {
     display: block;
     width: 100%;
-    margin-bottom: var(--spacing-sm);
-    font-size: var(--font-size-large);
-    padding: var(--spacing-md) var(--spacing-lg);
-    border-radius: var(--radius-lg);
-    background: var(--color-primary);
-    color: var(--color-white);
+    padding: 14px 28px;
+    margin-bottom: 12px;
+    font-size: 18px;
+    font-weight: 700;
     border: none;
-    font-family: var(--font-family);
-    box-shadow: var(--shadow-md);
-}
-
-.play-again-button.secondary {
-    background: var(--color-accent-4, #AA96DA);
+    border-radius: 16px;
+    background: #3498DB;
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #2980B9;
+    transition: transform 0.2s;
+    min-width: 48px;
+    min-height: 48px;
 }
 
 .play-again-button:active {
     transform: scale(0.95);
 }
 
-/* ── Progress Indicator ── */
-.progress-bar {
-    display: flex;
-    gap: var(--spacing-xs);
-    justify-content: center;
-    padding: var(--spacing-xs);
-}
-
-.progress-dot {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--color-light-gray);
-    border: 2px solid var(--color-primary);
-    transition: background 0.3s ease;
-}
-
-.progress-dot.filled {
-    background: var(--color-primary);
+.play-again-button.secondary {
+    background: #E0E0E0;
+    color: #555;
+    box-shadow: 0 4px 0 #CCC;
+    margin-top: 4px;
 }
 
 /* ── Hint Animation ── */
@@ -182,15 +258,71 @@
     50% { opacity: 1; }
 }
 
+/* ── Prompt Banner (shown during tracing) ── */
+.prompt-banner {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255,255,255,0.9);
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #2C3E50;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    z-index: 10;
+    white-space: nowrap;
+    pointer-events: none;
+    transition: opacity 0.3s;
+}
+
+/* ── Progress Indicator (canvas-drawn, but keep CSS for dots if used in HTML) ── */
+.progress-bar {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    padding: 8px;
+}
+
+.progress-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.5);
+    border: 2px solid #5DADE2;
+    transition: background 0.3s ease;
+}
+
+.progress-dot.filled {
+    background: #5DADE2;
+}
+
 /* ── Safe Area Insets (for notched devices) ── */
 @supports (padding-top: env(safe-area-inset-top)) {
     .tracer-header {
-        padding-top: calc(var(--spacing-md) + env(safe-area-inset-top));
+        padding-top: calc(12px + env(safe-area-inset-top));
     }
 }
 
-@supports (padding-bottom: env(safe-area-inset-bottom)) {
-    .tracer-canvas {
-        height: calc(100vh - 160px + env(safe-area-inset-bottom));
+/* ── Responsive ── */
+@media only screen and (max-width: 400px) {
+    .mode-btn {
+        font-size: 14px;
+        padding: 8px 10px;
+    }
+
+    .diff-btn {
+        font-size: 12px;
+        padding: 6px 8px;
+    }
+}
+
+@media only screen and (min-width: 768px) {
+    .mode-bar {
+        grid-template-columns: repeat(4, 1fr);
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
     }
 }
