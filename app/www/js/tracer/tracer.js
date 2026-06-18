@@ -107,8 +107,8 @@ const Tracer = (function () {
         // Start render loop
         startRenderLoop();
 
-        // Load first character
-        loadNewCharacter();
+        // Load first character after canvas is sized
+        setTimeout(loadNewCharacter, 100);
     }
 
     // ── Settings Persistence ───────────────────────────────────────
@@ -119,7 +119,7 @@ const Tracer = (function () {
             if (stored) {
                 var parsed = JSON.parse(stored);
                 if (parsed.tracer_mode) currentMode = parsed.tracer_mode;
-                if (parsed.tracer_difficulty) currentDifficulty = currentMode;
+                if (parsed.tracer_difficulty) currentDifficulty = parsed.tracer_difficulty;
             }
         } catch (e) {
             console.warn('Tracer: Failed to load settings', e);
@@ -901,24 +901,23 @@ const Tracer = (function () {
 
         var charList = [];
         var sequence = [];
+        var tracedSet = {};
+        for (var t = 0; t < charactersTraced.length; t++) {
+            tracedSet[charactersTraced[t].character] = true;
+        }
 
         switch (currentMode) {
             case "numbers":
                 charList = Paths.getCharactersForMode("numbers");
-                // Pick a random number not yet traced in this session (or all if session done)
-                var available = charList.filter(function (c) {
-                    return charactersTraced.indexOf(charactersTraced.find(function (t) { return t.character === c; })) === -1;
-                });
-                if (available.length === 0) available = charList; // Reset if all traced
+                var available = charList.filter(function (c) { return !tracedSet[c]; });
+                if (available.length === 0) available = charList;
                 currentCharacter = available[Math.floor(Math.random() * available.length)];
                 sequence = [currentCharacter];
                 break;
 
             case "letters":
                 charList = Paths.getCharactersForMode("letters");
-                var available = charList.filter(function (c) {
-                    return charactersTraced.indexOf(charactersTraced.find(function (t) { return t.character === c; })) === -1;
-                });
+                var available = charList.filter(function (c) { return !tracedSet[c]; });
                 if (available.length === 0) available = charList;
                 currentCharacter = available[Math.floor(Math.random() * available.length)];
                 sequence = [currentCharacter];
