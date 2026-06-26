@@ -567,101 +567,67 @@ const Tracer = (function () {
         return (tracingTolerance / 100) * bboxSize * scale;
     }
 
-    function updateSegmentProgress() {
+    function evaluateSegments() {
         if (segmentSamples.length === 0 || tracePoints.length === 0) return;
-        var seg = segmentSamples[currentSegmentIndex];
-        if (!seg || seg.complete) return;
-
-        var covered = 0;
-        for (var i = 0; i < seg.points.length; i++) {
-            var sp = seg.points[i];
-            for (var j = 0; j < tracePoints.length; j++) {
-                var tp = tracePoints[j];
-                var dx = sp.x - tp.x;
-                var dy = sp.y - tp.y;
-                if (Math.sqrt(dx * dx + dy * dy) <= seg.tolerance) {
-                    covered++;
-                    break;
-                }
-            }
+        for (var i = 0; i < segmentSamples.length; i++) {
+            segmentSamples[i].complete = false;
         }
 
-        var threshold = Math.max(1, Math.ceil(seg.points.length * 0.5));
-        if (covered >= threshold) {
-            seg.complete = true;
-            advanceSegment();
-            while (currentSegmentIndex < segmentSamples.length - 1) {
-                var nextSeg = segmentSamples[currentSegmentIndex];
-                if (!nextSeg || nextSeg.complete) {
-                    advanceSegment();
-                    continue;
-                }
-                var nextCovered = 0;
-                for (var ni = 0; ni < nextSeg.points.length; ni++) {
-                    var nsp = nextSeg.points[ni];
-                    for (var nj = 0; nj < tracePoints.length; nj++) {
-                        var ntp = tracePoints[nj];
-                        var ndx = nsp.x - ntp.x;
-                        var ndy = nsp.y - ntp.y;
-                        if (Math.sqrt(ndx * ndx + ndy * ndy) <= nextSeg.tolerance) {
-                            nextCovered++;
-                            break;
-                        }
+        for (var i = 0; i < segmentSamples.length; i++) {
+            var seg = segmentSamples[i];
+            var covered = 0;
+            for (var j = 0; j < seg.points.length; j++) {
+                var sp = seg.points[j];
+                for (var k = 0; k < tracePoints.length; k++) {
+                    var tp = tracePoints[k];
+                    var dx = sp.x - tp.x;
+                    var dy = sp.y - tp.y;
+                    if (Math.sqrt(dx * dx + dy * dy) <= seg.tolerance) {
+                        covered++;
+                        break;
                     }
                 }
-                var nextThreshold = Math.max(1, Math.ceil(nextSeg.points.length * 0.5));
-                if (nextCovered >= nextThreshold) {
-                    nextSeg.complete = true;
-                    advanceSegment();
-                } else {
-                    break;
-                }
             }
+            var threshold = Math.max(1, Math.ceil(seg.points.length * 0.7));
+            seg.complete = (covered >= threshold);
         }
     }
 
-    function advanceSegment() {
-        currentSegmentIndex++;
-        while (currentSegmentIndex < segmentSamples.length && segmentSamples[currentSegmentIndex].complete) {
-            currentSegmentIndex++;
+    function getSequentialCompletion() {
+        if (segmentSamples.length === 0) return 0;
+        for (var i = 0; i < segmentSamples.length; i++) {
+            if (!segmentSamples[i].complete) {
+                return i;
+            }
         }
-        if (currentSegmentIndex >= segmentSamples.length) {
-            currentSegmentIndex = segmentSamples.length - 1;
-        }
+        return segmentSamples.length;
     }
 
     function updateProgressFraction() {
         if (activeCharIndex >= renderChars.length) { progressFraction = 1; return; }
         if (segmentSamples.length === 0) { progressFraction = 0; return; }
         var ch = renderChars[activeCharIndex];
-        var completed = 0;
-        for (var i = 0; i < segmentSamples.length; i++) {
-            if (segmentSamples[i].complete) completed++;
-        }
-        progressFraction = completed / segmentSamples.length;
+        var seq = getSequentialCompletion();
+        progressFraction = seq / segmentSamples.length;
         pathCoverageMap[ch] = progressFraction;
     }
 
     function isActiveCharComplete() {
         if (segmentSamples.length === 0) return false;
-        var completed = 0;
-        for (var i = 0; i < segmentSamples.length; i++) {
-            if (segmentSamples[i].complete) completed++;
-        }
-        return (completed / segmentSamples.length) >= 0.75;
+        var seq = getSequentialCompletion();
+        return (seq / segmentSamples.length) >= 0.9;
     }
 
     function isPointOnActivePath(px, py) {
         if (segmentSamples.length === 0) return true;
-        var startIdx = Math.min(currentSegmentIndex, segmentSamples.length - 1);
-        for (var i = startIdx; i < segmentSamples.length && i < startIdx + 5; i++) {
+        for (var i = 0; i < segmentSamples.length; i++) {
             var seg = segmentSamples[i];
             if (!seg) continue;
             for (var j = 0; j < seg.points.length; j++) {
                 var sp = seg.points[j];
                 var dx = sp.x - px;
                 var dy = sp.y - py;
-                if (Math.sqrt(dx * dx + dy * dy) <= seg.tolerance * 1.5) return true;
+                if (Math.sqrt(dx * dx + dy * dy) <= seg.tolerance) return true;
             }
         }
         return false;
@@ -825,7 +791,7 @@ const Tracer = (function () {
 
         var coords = getCanvasCoordinates(e);
         tracePoints.push(coords);
-        updateSegmentProgress();
+        evaluateSegments();
         updateProgressFraction();
 
         var onPath = isPointOnActivePath(coords.x, coords.y);
@@ -854,6 +820,7 @@ const Tracer = (function () {
 
         isTracing = false;
         offPathPoints = [];
+        evaluateSegments();
 
         if (isActiveCharComplete()) {
             onSubCharSuccess();
@@ -885,7 +852,7 @@ const Tracer = (function () {
         if (!isTracing) return;
         var coords = getCanvasCoordinates(e);
         tracePoints.push(coords);
-        updateSegmentProgress();
+        evaluateSegments();
         updateProgressFraction();
 
         var onPath = isPointOnActivePath(coords.x, coords.y);
@@ -902,6 +869,7 @@ const Tracer = (function () {
 
         isTracing = false;
         offPathPoints = [];
+        evaluateSegments();
 
         if (isActiveCharComplete()) {
             onSubCharSuccess();
@@ -930,7 +898,6 @@ const Tracer = (function () {
         var ch = renderChars[activeCharIndex];
         pathCoverageMap[ch] = 1;
         segmentSamples = [];
-        currentSegmentIndex = 0;
 
         if (typeof Sound !== 'undefined') {
             Sound.init();
@@ -958,7 +925,6 @@ const Tracer = (function () {
         failureCount++;
         tracePoints = [];
         segmentSamples = [];
-        currentSegmentIndex = 0;
 
         if (typeof Sound !== 'undefined') {
             Sound.init();

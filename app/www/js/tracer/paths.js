@@ -61,7 +61,7 @@ const Paths = (function () {
 
         "4": {
             paths: [
-                "M 70 88 L 70 12",
+                "M 15 60 L 70 12 L 70 88",
                 "M 15 55 L 70 55"
             ],
             strokeOrder: [1, 2],
