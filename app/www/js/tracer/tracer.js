@@ -5,11 +5,15 @@ const Tracer = (function () {
     var celebrationEl, celebrationTitle, celebrationMsg, celebrationMeaning;
     var playAgainBtn, celebrationBack;
     var promptBanner;
+    var confettiParts = [];
+    var confettiCanvas = null;
 
     var currentMode = "numbers";
     var currentDifficulty = "easy";
     var currentCharacter = null;
     var currentWordEntry = null;
+    var renderChars = [];
+    var activeCharIndex = 0;
     var isTracing = false;
     var tracePoints = [];
     var offPathPoints = [];
@@ -18,19 +22,19 @@ const Tracer = (function () {
     var successCount = 0;
     var failureCount = 0;
     var charactersTraced = [];
-    var setComplete = false;
     var charactersPerSet = 3;
     var tracingTolerance = 50;
     var hintFrequency = 1;
     var showStrokeHints = true;
-    var currentCharacterIndex = 0;
-    var characterSequence = [];
     var lastTouchTime = 0;
     var renderLoopId = null;
     var progressFraction = 0;
+    var pathCoverageMap = {};
+    var currentSegmentIndex = 0;
+    var segmentSamples = [];
 
-    var CANVAS_PADDING = 20;
     var BASE_CHAR_SIZE = 100;
+    var CHAR_GAP = 15;
 
     var DIFFICULTY_CONFIG = {
         "easy":   { tolerance: 50, setSize: 3, hintFrequency: 1, showHints: true },
@@ -126,9 +130,7 @@ const Tracer = (function () {
     var _resizeTimer = null;
     function debounceResize() {
         clearTimeout(_resizeTimer);
-        _resizeTimer = setTimeout(function () {
-            resizeCanvas();
-        }, 150);
+        _resizeTimer = setTimeout(resizeCanvas, 150);
     }
 
     function loadSettings() {
@@ -142,7 +144,6 @@ const Tracer = (function () {
         } catch (e) {
             console.warn('Tracer: Failed to load settings', e);
         }
-
         applyDifficultyConfig();
         syncButtonStates();
     }
@@ -190,8 +191,6 @@ const Tracer = (function () {
         successCount = 0;
         failureCount = 0;
         charactersTraced = [];
-        setComplete = false;
-        currentCharacterIndex = 0;
         progressFraction = 0;
     }
 
@@ -216,12 +215,12 @@ const Tracer = (function () {
 
     function render() {
         if (!ctx || !canvas) return;
-
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        if (currentCharacter) {
-            drawCharacterOutline();
-            drawStrokeHints();
+        if (renderChars.length > 0) {
+            drawAllCharacters();
+            drawActiveCharStrokeHints();
+            drawActiveCharHintLabels();
             drawGlowTrail();
             drawOffPathFeedback();
             drawTracePoints();
@@ -229,83 +228,199 @@ const Tracer = (function () {
         }
 
         drawProgressBar();
-        drawPromptBanner();
+        updatePromptBannerOpacity();
+        renderConfetti();
     }
 
-    function drawCharacterOutline() {
-        if (!currentCharacter) return;
+    function getCharLayout() {
+        var n = renderChars.length;
+        if (n === 0) return [];
 
-        var pathData = Paths.getPath(currentCharacter);
-        if (!pathData || !pathData.paths) return;
+        var scale = getScaleFactor(n);
+        var gap = CHAR_GAP * scale;
+        var totalWidth = 0;
+        var charWidths = [];
 
-        var scale = getScaleFactor();
-        var offsetX = (canvas.width - pathData.boundingBox.width * scale) / 2;
-        var offsetY = (canvas.height - pathData.boundingBox.height * scale) / 2;
+        for (var i = 0; i < n; i++) {
+            var pd = Paths.getPath(renderChars[i]);
+            var w = pd ? pd.boundingBox.width * scale : BASE_CHAR_SIZE * scale;
+            charWidths.push(w);
+            totalWidth += w;
+        }
+        totalWidth += gap * (n - 1);
 
-        ctx.save();
-        ctx.translate(offsetX, offsetY);
-        ctx.scale(scale, scale);
+        var startX = (canvas.width - totalWidth) / 2;
+        var layouts = [];
+        var cx = startX;
 
-        for (var i = 0; i < pathData.paths.length; i++) {
-            ctx.beginPath();
-            ctx.setLineDash([8, 4]);
-            ctx.strokeStyle = 'rgba(150, 150, 180, 0.5)';
-            ctx.lineWidth = 3;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
+        for (var j = 0; j < n; j++) {
+            var pd2 = Paths.getPath(renderChars[j]);
+            var cw = charWidths[j];
+            var ch = pd2 ? pd2.boundingBox.height * scale : BASE_CHAR_SIZE * scale;
+            var ox = pd2 ? (cx - pd2.boundingBox.x * scale) : cx;
+            var oy = pd2 ? ((canvas.height - ch) / 2 - pd2.boundingBox.y * scale) : (canvas.height - ch) / 2;
 
-            var firstPt = pathData.paths[i].match(/M\s*([0-9.]+)\s*([0-9.]+)/);
-            if (firstPt) {
-                var completedStrokesBefore = i;
-                if (completedStrokesBefore < progressFraction * pathData.paths.length) {
+            layouts.push({
+                char: renderChars[j],
+                pathData: pd2,
+                scale: scale,
+                offsetX: ox,
+                offsetY: oy,
+                width: cw,
+                x: cx
+            });
+            cx += cw + gap;
+        }
+
+        return layouts;
+    }
+
+    function drawAllCharacters() {
+        var layouts = getCharLayout();
+
+        for (var i = 0; i < layouts.length; i++) {
+            var L = layouts[i];
+            if (!L.pathData) continue;
+
+            var isActive = (i === activeCharIndex);
+            var isComplete = (i < activeCharIndex);
+            var coverage = pathCoverageMap[renderChars[i]] || 0;
+
+            ctx.save();
+            ctx.translate(L.offsetX, L.offsetY);
+            ctx.scale(L.scale, L.scale);
+
+            for (var s = 0; s < L.pathData.paths.length; s++) {
+                ctx.beginPath();
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+
+                if (isComplete) {
                     ctx.setLineDash([]);
-                    ctx.strokeStyle = getCharacterColor(currentCharacter);
-                    ctx.lineWidth = 6;
+                    ctx.strokeStyle = '#4ECDC4';
+                    ctx.lineWidth = 8;
+                } else if (isActive) {
+                    if (coverage > 0.95) {
+                        ctx.setLineDash([]);
+                        ctx.strokeStyle = '#4ECDC4';
+                        ctx.lineWidth = 8;
+                    } else if (s === 0 || L.pathData.paths.length === 1) {
+                        ctx.setLineDash([8, 4]);
+                        ctx.strokeStyle = 'rgba(78, 205, 196, ' + (0.3 + 0.7 * coverage) + ')';
+                        ctx.lineWidth = 3 + 5 * coverage;
+                    } else {
+                        ctx.setLineDash([8, 4]);
+                        ctx.strokeStyle = 'rgba(150, 150, 180, 0.5)';
+                        ctx.lineWidth = 3;
+                    }
+                } else {
+                    ctx.setLineDash([8, 4]);
+                    ctx.strokeStyle = 'rgba(150, 150, 180, 0.35)';
+                    ctx.lineWidth = 3;
                 }
+
+                parseAndDrawPath(L.pathData.paths[s]);
+                ctx.stroke();
             }
 
-            parseAndDrawPath(pathData.paths[i]);
-            ctx.stroke();
+            ctx.restore();
+        }
+    }
+
+    function drawActiveCharStrokeHints() {
+        if (!showStrokeHints || renderChars.length === 0) return;
+        if (activeCharIndex >= renderChars.length) return;
+
+        var layouts = getCharLayout();
+        var L = layouts[activeCharIndex];
+        if (!L || !L.pathData) return;
+
+        ctx.save();
+        ctx.translate(L.offsetX, L.offsetY);
+        ctx.scale(L.scale, L.scale);
+
+        for (var i = 0; i < L.pathData.paths.length; i++) {
+            var strokeNum = L.pathData.strokeOrder[i] || (i + 1);
+            var firstCmd = L.pathData.paths[i].match(/M\s*([0-9.]+)\s*([0-9.]+)/);
+            if (!firstCmd) continue;
+
+            var sx = parseFloat(firstCmd[1]);
+            var sy = parseFloat(firstCmd[2]);
+
+            ctx.beginPath();
+            ctx.arc(sx, sy, 6, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(93, 173, 226, 0.8)';
+            ctx.fill();
+
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 8px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(strokeNum.toString(), sx, sy);
         }
 
         ctx.restore();
     }
 
-    function parseAndDrawPath(pathString) {
-        var commands = pathString.match(/[MLCZ]|[+-]?\d*\.?\d+/g);
-        if (!commands) return;
+    function drawActiveCharHintLabels() {
+        if (!showStrokeHints || activeCharIndex >= renderChars.length) return;
+        var layouts = getCharLayout();
+        var L = layouts[activeCharIndex];
+        if (!L || !L.pathData || L.pathData.paths.length <= 1) return;
 
-        var x = 0, y = 0;
+        ctx.save();
+        ctx.translate(L.offsetX, L.offsetY);
+        ctx.scale(L.scale, L.scale);
 
-        for (var i = 0; i < commands.length; i++) {
-            var cmd = commands[i];
+        for (var i = 0; i < L.pathData.paths.length - 1; i++) {
+            var curCmd = L.pathData.paths[i].match(/M\s*([0-9.]+)\s*([0-9.]+)/);
+            var nextCmd = L.pathData.paths[i + 1].match(/M\s*([0-9.]+)\s*([0-9.]+)/);
+            if (!curCmd || !nextCmd) continue;
 
-            if (cmd === 'M' || cmd === 'm') {
-                i++; x = parseFloat(commands[i]);
-                i++; y = parseFloat(commands[i]);
-                ctx.moveTo(x, y);
-            } else if (cmd === 'L' || cmd === 'l') {
-                i++; x = parseFloat(commands[i]);
-                i++; y = parseFloat(commands[i]);
-                ctx.lineTo(x, y);
-            } else if (cmd === 'C' || cmd === 'c') {
-                i++; var cx1 = parseFloat(commands[i]);
-                i++; var cy1 = parseFloat(commands[i]);
-                i++; var cx2 = parseFloat(commands[i]);
-                i++; var cy2 = parseFloat(commands[i]);
-                i++; var ex = parseFloat(commands[i]);
-                i++; var ey = parseFloat(commands[i]);
-                ctx.bezierCurveTo(cx1, cy1, cx2, cy2, ex, ey);
-            } else if (cmd === 'Z' || cmd === 'z') {
-                ctx.closePath();
-            }
+            var fx = parseFloat(curCmd[1]);
+            var fy = parseFloat(curCmd[2]);
+            var tx = parseFloat(nextCmd[1]);
+            var ty = parseFloat(nextCmd[2]);
+            drawArrow(fx, fy, tx, ty);
         }
+
+        ctx.restore();
     }
 
-    function getScaleFactor() {
+    function drawArrow(fromX, fromY, toX, toY) {
+        var dx = toX - fromX;
+        var dy = toY - fromY;
+        var angle = Math.atan2(dy, dx);
+        var arrowLen = 10;
+        var midX = fromX + dx * 0.3;
+        var midY = fromY + dy * 0.3;
+
+        ctx.save();
+        ctx.strokeStyle = 'rgba(93, 173, 226, 0.5)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([3, 2]);
+
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(midX, midY);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(midX, midY);
+        ctx.lineTo(midX - arrowLen * Math.cos(angle - 0.4), midY - arrowLen * Math.sin(angle - 0.4));
+        ctx.moveTo(midX, midY);
+        ctx.lineTo(midX - arrowLen * Math.cos(angle + 0.4), midY - arrowLen * Math.sin(angle + 0.4));
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    function getScaleFactor(numChars) {
+        var n = numChars || renderChars.length || 1;
         var rect = canvas.getBoundingClientRect();
-        var charWidth = Math.min(rect.width * 0.7, rect.height * 0.7);
-        return Math.max(0.8, Math.min(2.5, charWidth / BASE_CHAR_SIZE));
+        var availWidth = rect.width * 0.85;
+        var availHeight = rect.height * 0.75;
+        var singleCharSize = Math.min(availWidth / n, availHeight);
+        return Math.max(0.5, Math.min(3.0, singleCharSize / BASE_CHAR_SIZE));
     }
 
     function getCharacterColor(character) {
@@ -323,83 +438,10 @@ const Tracer = (function () {
         return colors[Math.abs(hash) % colors.length];
     }
 
-    function drawStrokeHints() {
-        if (!currentCharacter || !showStrokeHints) return;
-
-        var pathData = Paths.getPath(currentCharacter);
-        if (!pathData || !pathData.paths) return;
-
-        var scale = getScaleFactor();
-        var offsetX = (canvas.width - pathData.boundingBox.width * scale) / 2;
-        var offsetY = (canvas.height - pathData.boundingBox.height * scale) / 2;
-
-        ctx.save();
-        ctx.translate(offsetX, offsetY);
-        ctx.scale(scale, scale);
-
-        for (var i = 0; i < pathData.paths.length; i++) {
-            var strokeNum = pathData.strokeOrder[i] || (i + 1);
-            var firstCmd = pathData.paths[i].match(/M\s*([0-9.]+)\s*([0-9.]+)/);
-            if (!firstCmd) continue;
-
-            var startX = parseFloat(firstCmd[1]);
-            var startY = parseFloat(firstCmd[2]);
-
-            ctx.beginPath();
-            ctx.arc(startX, startY, 6, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(93, 173, 226, 0.8)';
-            ctx.fill();
-
-            ctx.fillStyle = '#FFFFFF';
-            ctx.font = 'bold 8px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(strokeNum.toString(), startX, startY);
-
-            if (i < pathData.paths.length - 1) {
-                var nextCmd = pathData.paths[i + 1].match(/M\s*([0-9.]+)\s*([0-9.]+)/);
-                if (nextCmd) {
-                    drawArrow(startX, startY, parseFloat(nextCmd[1]), parseFloat(nextCmd[2]));
-                }
-            }
-        }
-
-        ctx.restore();
-    }
-
-    function drawArrow(fromX, fromY, toX, toY) {
-        var dx = toX - fromX;
-        var dy = toY - fromY;
-        var angle = Math.atan2(dy, dx);
-        var arrowLen = 10;
-
-        ctx.save();
-        ctx.strokeStyle = 'rgba(93, 173, 226, 0.5)';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([3, 2]);
-
-        var midX = fromX + dx * 0.3;
-        var midY = fromY + dy * 0.3;
-        ctx.beginPath();
-        ctx.moveTo(fromX, fromY);
-        ctx.lineTo(midX, midY);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(midX, midY);
-        ctx.lineTo(midX - arrowLen * Math.cos(angle - 0.4), midY - arrowLen * Math.sin(angle - 0.4));
-        ctx.moveTo(midX, midY);
-        ctx.lineTo(midX - arrowLen * Math.cos(angle + 0.4), midY - arrowLen * Math.sin(angle + 0.4));
-        ctx.stroke();
-
-        ctx.restore();
-    }
-
     function drawGlowTrail() {
         if (tracePoints.length < 2) return;
 
         ctx.save();
-
         ctx.shadowColor = 'rgba(78, 205, 196, 0.6)';
         ctx.shadowBlur = 12;
         ctx.strokeStyle = 'rgba(78, 205, 196, 0.9)';
@@ -424,13 +466,11 @@ const Tracer = (function () {
             ctx.lineTo(tracePoints[j].x, tracePoints[j].y);
         }
         ctx.stroke();
-
         ctx.restore();
     }
 
     function drawOffPathFeedback() {
         if (offPathPoints.length === 0) return;
-
         ctx.save();
         for (var i = 0; i < offPathPoints.length; i++) {
             var pt = offPathPoints[i];
@@ -444,7 +484,6 @@ const Tracer = (function () {
 
     function drawTracePoints() {
         if (tracePoints.length === 0) return;
-
         ctx.save();
         for (var i = 0; i < tracePoints.length; i++) {
             var pt = tracePoints[i];
@@ -456,40 +495,227 @@ const Tracer = (function () {
         ctx.restore();
     }
 
-    function updateProgressFraction() {
-        if (!currentCharacter || tracePoints.length < 5) {
-            progressFraction = 0;
-            return;
-        }
+    function buildSegmentSamples(pathData, charIdx) {
+        segmentSamples = [];
+        var layouts = getCharLayout();
+        if (charIdx >= layouts.length) return;
+        var L = layouts[charIdx];
+        var tolerancePx = getTolerancePx(charIdx);
 
-        var pathData = Paths.getPath(currentCharacter);
-        if (!pathData || !pathData.paths) return;
-
-        var pathPoints = samplePathPoints(pathData);
-        if (pathPoints.length === 0) return;
-
-        var scale = getScaleFactor();
-        var tolerancePx = (tracingTolerance / 100) * BASE_CHAR_SIZE * scale;
-
-        var coveredPoints = 0;
-        var totalSampled = Math.ceil(pathPoints.length / 3);
-
-        for (var k = 0; k < pathPoints.length; k += 3) {
-            var pp = pathPoints[k];
-            var minDist = Infinity;
-
-            for (var m = 0; m < tracePoints.length; m++) {
-                var tp = tracePoints[m];
-                var dx = pp.x - tp.x;
-                var dy = pp.y - tp.y;
-                var dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist < minDist) minDist = dist;
+        var rawPoints = [];
+        for (var i = 0; i < pathData.paths.length; i++) {
+            var commands = pathData.paths[i].match(/[MLCZ]|[+-]?\d*\.?\d+/g);
+            if (!commands) continue;
+            var x = 0, y = 0, prevX = 0, prevY = 0;
+            var segs = [];
+            for (var j = 0; j < commands.length; j++) {
+                var cmd = commands[j];
+                if (cmd === 'M' || cmd === 'm') {
+                    j++; x = parseFloat(commands[j]);
+                    j++; y = parseFloat(commands[j]);
+                    prevX = x; prevY = y;
+                } else if (cmd === 'L' || cmd === 'l') {
+                    j++; x = parseFloat(commands[j]);
+                    j++; y = parseFloat(commands[j]);
+                    segs.push(lineSegs(prevX, prevY, x, y, 10));
+                    prevX = x; prevY = y;
+                } else if (cmd === 'C' || cmd === 'c') {
+                    j++; var cx1 = parseFloat(commands[j]);
+                    j++; var cy1 = parseFloat(commands[j]);
+                    j++; var cx2 = parseFloat(commands[j]);
+                    j++; var cy2 = parseFloat(commands[j]);
+                    j++; var ex = parseFloat(commands[j]);
+                    j++; var ey = parseFloat(commands[j]);
+                    segs.push(bezSegs(prevX, prevY, cx1, cy1, cx2, cy2, ex, ey, 15));
+                    prevX = ex; prevY = ey;
+                }
             }
-
-            if (minDist <= tolerancePx) coveredPoints++;
+            for (var s = 0; s < segs.length; s++) {
+                rawPoints = rawPoints.concat(segs[s]);
+            }
         }
 
-        progressFraction = coveredPoints / totalSampled;
+        var totalSegs = 20;
+        var segSize = Math.max(1, Math.floor(rawPoints.length / totalSegs));
+        for (var k = 0; k < totalSegs && k * segSize < rawPoints.length; k++) {
+            var segPoints = [];
+            for (var m = 0; m < segSize && (k * segSize + m) < rawPoints.length; m++) {
+                var rp = rawPoints[k * segSize + m];
+                segPoints.push({
+                    x: rp.x * L.scale + L.offsetX,
+                    y: rp.y * L.scale + L.offsetY
+                });
+            }
+            if (segPoints.length === 0) break;
+            var segCenter = segPoints[0];
+            segmentSamples.push({
+                points: segPoints,
+                center: segCenter,
+                tolerance: tolerancePx,
+                coveredTraceCount: 0,
+                complete: false
+            });
+        }
+
+        currentSegmentIndex = 0;
+    }
+
+    function getTolerancePx(charIdx) {
+        var pd = charIdx < renderChars.length ? Paths.getPath(renderChars[charIdx]) : null;
+        var bboxSize = pd ? Math.max(pd.boundingBox.width, pd.boundingBox.height) : BASE_CHAR_SIZE;
+        var scale = getScaleFactor(renderChars.length);
+        return (tracingTolerance / 100) * bboxSize * scale;
+    }
+
+    function updateSegmentProgress() {
+        if (segmentSamples.length === 0 || tracePoints.length === 0) return;
+        var seg = segmentSamples[currentSegmentIndex];
+        if (!seg || seg.complete) return;
+
+        var covered = 0;
+        for (var i = 0; i < seg.points.length; i++) {
+            var sp = seg.points[i];
+            for (var j = 0; j < tracePoints.length; j++) {
+                var tp = tracePoints[j];
+                var dx = sp.x - tp.x;
+                var dy = sp.y - tp.y;
+                if (Math.sqrt(dx * dx + dy * dy) <= seg.tolerance) {
+                    covered++;
+                    break;
+                }
+            }
+        }
+
+        var threshold = Math.max(1, Math.ceil(seg.points.length * 0.5));
+        if (covered >= threshold) {
+            seg.complete = true;
+            advanceSegment();
+            while (currentSegmentIndex < segmentSamples.length - 1) {
+                var nextSeg = segmentSamples[currentSegmentIndex];
+                if (!nextSeg || nextSeg.complete) {
+                    advanceSegment();
+                    continue;
+                }
+                var nextCovered = 0;
+                for (var ni = 0; ni < nextSeg.points.length; ni++) {
+                    var nsp = nextSeg.points[ni];
+                    for (var nj = 0; nj < tracePoints.length; nj++) {
+                        var ntp = tracePoints[nj];
+                        var ndx = nsp.x - ntp.x;
+                        var ndy = nsp.y - ntp.y;
+                        if (Math.sqrt(ndx * ndx + ndy * ndy) <= nextSeg.tolerance) {
+                            nextCovered++;
+                            break;
+                        }
+                    }
+                }
+                var nextThreshold = Math.max(1, Math.ceil(nextSeg.points.length * 0.5));
+                if (nextCovered >= nextThreshold) {
+                    nextSeg.complete = true;
+                    advanceSegment();
+                } else {
+                    break;
+                }
+            }
+        }
+    }
+
+    function advanceSegment() {
+        currentSegmentIndex++;
+        while (currentSegmentIndex < segmentSamples.length && segmentSamples[currentSegmentIndex].complete) {
+            currentSegmentIndex++;
+        }
+        if (currentSegmentIndex >= segmentSamples.length) {
+            currentSegmentIndex = segmentSamples.length - 1;
+        }
+    }
+
+    function updateProgressFraction() {
+        if (activeCharIndex >= renderChars.length) { progressFraction = 1; return; }
+        if (segmentSamples.length === 0) { progressFraction = 0; return; }
+        var ch = renderChars[activeCharIndex];
+        var completed = 0;
+        for (var i = 0; i < segmentSamples.length; i++) {
+            if (segmentSamples[i].complete) completed++;
+        }
+        progressFraction = completed / segmentSamples.length;
+        pathCoverageMap[ch] = progressFraction;
+    }
+
+    function isActiveCharComplete() {
+        if (segmentSamples.length === 0) return false;
+        var completed = 0;
+        for (var i = 0; i < segmentSamples.length; i++) {
+            if (segmentSamples[i].complete) completed++;
+        }
+        return (completed / segmentSamples.length) >= 0.75;
+    }
+
+    function isPointOnActivePath(px, py) {
+        if (segmentSamples.length === 0) return true;
+        var startIdx = Math.min(currentSegmentIndex, segmentSamples.length - 1);
+        for (var i = startIdx; i < segmentSamples.length && i < startIdx + 5; i++) {
+            var seg = segmentSamples[i];
+            if (!seg) continue;
+            for (var j = 0; j < seg.points.length; j++) {
+                var sp = seg.points[j];
+                var dx = sp.x - px;
+                var dy = sp.y - py;
+                if (Math.sqrt(dx * dx + dy * dy) <= seg.tolerance * 1.5) return true;
+            }
+        }
+        return false;
+    }
+
+    function lineSegs(x1, y1, x2, y2, n) {
+        var pts = [];
+        for (var i = 0; i <= n; i++) {
+            var t = i / n;
+            pts.push({ x: x1 + (x2 - x1) * t, y: y1 + (y2 - y1) * t });
+        }
+        return pts;
+    }
+
+    function bezSegs(x1, y1, cx1, cy1, cx2, cy2, x2, y2, n) {
+        var pts = [];
+        for (var i = 0; i <= n; i++) {
+            var t = i / n;
+            var mt = 1 - t;
+            pts.push({
+                x: mt*mt*mt*x1 + 3*mt*mt*t*cx1 + 3*mt*t*t*cx2 + t*t*t*x2,
+                y: mt*mt*mt*y1 + 3*mt*mt*t*cy1 + 3*mt*t*t*cy2 + t*t*t*y2
+            });
+        }
+        return pts;
+    }
+
+    function parseAndDrawPath(pathString) {
+        var commands = pathString.match(/[MLCZ]|[+-]?\d*\.?\d+/g);
+        if (!commands) return;
+
+        var x = 0, y = 0;
+        for (var i = 0; i < commands.length; i++) {
+            var cmd = commands[i];
+            if (cmd === 'M' || cmd === 'm') {
+                i++; x = parseFloat(commands[i]);
+                i++; y = parseFloat(commands[i]);
+                ctx.moveTo(x, y);
+            } else if (cmd === 'L' || cmd === 'l') {
+                i++; x = parseFloat(commands[i]);
+                i++; y = parseFloat(commands[i]);
+                ctx.lineTo(x, y);
+            } else if (cmd === 'C' || cmd === 'c') {
+                i++; var cx1 = parseFloat(commands[i]);
+                i++; var cy1 = parseFloat(commands[i]);
+                i++; var cx2 = parseFloat(commands[i]);
+                i++; var cy2 = parseFloat(commands[i]);
+                i++; var ex = parseFloat(commands[i]);
+                i++; var ey = parseFloat(commands[i]);
+                ctx.bezierCurveTo(cx1, cy1, cx2, cy2, ex, ey);
+            } else if (cmd === 'Z' || cmd === 'z') {
+                ctx.closePath();
+            }
+        }
     }
 
     function drawProgressBar() {
@@ -500,7 +726,6 @@ const Tracer = (function () {
         var radius = 4;
 
         ctx.save();
-
         ctx.fillStyle = 'rgba(200, 200, 200, 0.4)';
         fillRoundRect(ctx, x, y, barWidth, barHeight, radius);
 
@@ -514,13 +739,13 @@ const Tracer = (function () {
         }
 
         var dotSize = 8;
-        var gap = 16;
-        var totalDotWidth = charactersTraced.length * (dotSize + gap) - gap;
+        var dotGap = 16;
+        var totalDotWidth = charactersTraced.length * (dotSize + dotGap) - dotGap;
         var dotStartX = (canvas.width - totalDotWidth) / 2;
         var dotY = y - 16;
 
         for (var i = 0; i < charactersTraced.length; i++) {
-            var dotX = dotStartX + i * (dotSize + gap);
+            var dotX = dotStartX + i * (dotSize + dotGap);
             ctx.beginPath();
             ctx.arc(dotX + dotSize / 2, dotY, dotSize / 2, 0, Math.PI * 2);
             ctx.fillStyle = charactersTraced[i].success ? getCharacterColor(charactersTraced[i].character) : 'rgba(200, 200, 200, 0.5)';
@@ -545,143 +770,19 @@ const Tracer = (function () {
         context.fill();
     }
 
-    function drawPromptBanner() {
+    function updatePromptBannerOpacity() {
         if (!promptBanner) return;
-        if (currentCharacter && !isTracing && tracePoints.length === 0) {
+        if (renderChars.length > 0 && !isTracing && tracePoints.length === 0) {
             promptBanner.style.opacity = '1';
         } else if (isTracing) {
             promptBanner.style.opacity = '0.4';
         }
     }
 
-    function isCharacterComplete(pathData) {
-        if (!pathData || !pathData.paths || tracePoints.length < 5) return false;
-
-        var scale = getScaleFactor();
-        var tolerancePx = (tracingTolerance / 100) * BASE_CHAR_SIZE * scale;
-
-        var pathPoints = samplePathPoints(pathData);
-        var coveredPoints = 0;
-        var totalSampled = Math.ceil(pathPoints.length / 3);
-
-        for (var k = 0; k < pathPoints.length; k += 3) {
-            var pp = pathPoints[k];
-            var minDist = Infinity;
-
-            for (var m = 0; m < tracePoints.length; m++) {
-                var tp = tracePoints[m];
-                var dx = pp.x - tp.x;
-                var dy = pp.y - tp.y;
-                var dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist < minDist) minDist = dist;
-            }
-
-            if (minDist <= tolerancePx) coveredPoints++;
-        }
-
-        return (coveredPoints / totalSampled) >= 0.7;
-    }
-
-    function samplePathPoints(pathData) {
-        var points = [];
-
-        for (var i = 0; i < pathData.paths.length; i++) {
-            var commands = pathData.paths[i].match(/[MLCZ]|[+-]?\d*\.?\d+/g);
-            if (!commands) continue;
-
-            var x = 0, y = 0;
-            var prevX = 0, prevY = 0;
-            var segments = [];
-
-            for (var j = 0; j < commands.length; j++) {
-                var cmd = commands[j];
-
-                if (cmd === 'M' || cmd === 'm') {
-                    j++; x = parseFloat(commands[j]);
-                    j++; y = parseFloat(commands[j]);
-                    prevX = x; prevY = y;
-                } else if (cmd === 'L' || cmd === 'l') {
-                    j++; x = parseFloat(commands[j]);
-                    j++; y = parseFloat(commands[j]);
-                    segments.push(lineSegments(prevX, prevY, x, y, 10));
-                    prevX = x; prevY = y;
-                } else if (cmd === 'C' || cmd === 'c') {
-                    j++; var cx1 = parseFloat(commands[j]);
-                    j++; var cy1 = parseFloat(commands[j]);
-                    j++; var cx2 = parseFloat(commands[j]);
-                    j++; var cy2 = parseFloat(commands[j]);
-                    j++; var ex = parseFloat(commands[j]);
-                    j++; var ey = parseFloat(commands[j]);
-                    segments.push(bezierSegments(prevX, prevY, cx1, cy1, cx2, cy2, ex, ey, 15));
-                    prevX = ex; prevY = ey;
-                }
-            }
-
-            for (var s = 0; s < segments.length; s++) {
-                points = points.concat(segments[s]);
-            }
-        }
-
-        var scale = getScaleFactor();
-        var offsetX = (canvas.width - pathData.boundingBox.width * scale) / 2;
-        var offsetY = (canvas.height - pathData.boundingBox.height * scale) / 2;
-
-        for (var p = 0; p < points.length; p++) {
-            points[p] = {
-                x: points[p].x * scale + offsetX,
-                y: points[p].y * scale + offsetY
-            };
-        }
-
-        return points;
-    }
-
-    function lineSegments(x1, y1, x2, y2, count) {
-        var points = [];
-        for (var i = 0; i <= count; i++) {
-            var t = i / count;
-            points.push({ x: x1 + (x2 - x1) * t, y: y1 + (y2 - y1) * t });
-        }
-        return points;
-    }
-
-    function bezierSegments(x1, y1, cx1, cy1, cx2, cy2, x2, y2, count) {
-        var points = [];
-        for (var i = 0; i <= count; i++) {
-            var t = i / count;
-            var mt = 1 - t;
-            points.push({
-                x: mt*mt*mt*x1 + 3*mt*mt*t*cx1 + 3*mt*t*t*cx2 + t*t*t*x2,
-                y: mt*mt*mt*y1 + 3*mt*mt*t*cy1 + 3*mt*t*t*cy2 + t*t*t*y2
-            });
-        }
-        return points;
-    }
-
-    function isPointOnPath(px, py) {
-        var pathData = Paths.getPath(currentCharacter);
-        if (!pathData) return true;
-
-        var scale = getScaleFactor();
-        var tolerancePx = (tracingTolerance / 100) * BASE_CHAR_SIZE * scale;
-        var pathPoints = samplePathPoints(pathData);
-
-        for (var i = 0; i < pathPoints.length; i += 3) {
-            var pp = pathPoints[i];
-            var dx = pp.x - px;
-            var dy = pp.y - py;
-            var dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist <= tolerancePx) return true;
-        }
-
-        return false;
-    }
-
     function getCanvasCoordinates(touchEvent) {
         var rect = canvas.getBoundingClientRect();
         var scaleX = canvas.width / rect.width;
         var scaleY = canvas.height / rect.height;
-
         var clientX = touchEvent.clientX;
         var clientY = touchEvent.clientY;
 
@@ -699,12 +800,19 @@ const Tracer = (function () {
     function handleTouchStart(e) {
         e.preventDefault();
         if (!e.touches || e.touches.length === 0) return;
+        if (activeCharIndex >= renderChars.length) return;
 
         var now = Date.now();
         if (now - lastTouchTime < 100) return;
         lastTouchTime = now;
 
         var coords = getCanvasCoordinates(e);
+        if (!isPointNearActiveChar(coords.x, coords.y)) return;
+
+        var ch = renderChars[activeCharIndex];
+        var pathData = Paths.getPath(ch);
+        if (pathData) buildSegmentSamples(pathData, activeCharIndex);
+
         isTracing = true;
         tracePoints = [coords];
         offPathPoints = [];
@@ -717,15 +825,17 @@ const Tracer = (function () {
 
         var coords = getCanvasCoordinates(e);
         tracePoints.push(coords);
+        updateSegmentProgress();
+        updateProgressFraction();
 
-        var onPath = isPointOnPath(coords.x, coords.y);
+        var onPath = isPointOnActivePath(coords.x, coords.y);
         if (!onPath) {
             offPathPoints.push(coords);
             if (offPathPoints.length > 20) offPathPoints.shift();
 
-            if (!showStrokeHints && mistakesCount < hintFrequency * 3) {
+            if (!showStrokeHints) {
                 mistakesCount++;
-                if (mistakesCount >= hintFrequency * 2) {
+                if (mistakesCount >= hintFrequency * 3) {
                     showStrokeHints = true;
                     hintsUsed++;
                     if (typeof Sound !== 'undefined') {
@@ -745,20 +855,26 @@ const Tracer = (function () {
         isTracing = false;
         offPathPoints = [];
 
-        var pathData = Paths.getPath(currentCharacter);
-        if (pathData && isCharacterComplete(pathData)) {
-            onCharacterSuccess();
+        if (isActiveCharComplete()) {
+            onSubCharSuccess();
         } else {
-            onCharacterFailure();
+            onSubCharFailure();
         }
     }
 
     function handleMouseDown(e) {
+        if (activeCharIndex >= renderChars.length) return;
         var now = Date.now();
         if (now - lastTouchTime < 100) return;
         lastTouchTime = now;
 
         var coords = getCanvasCoordinates(e);
+        if (!isPointNearActiveChar(coords.x, coords.y)) return;
+
+        var ch = renderChars[activeCharIndex];
+        var pathData = Paths.getPath(ch);
+        if (pathData) buildSegmentSamples(pathData, activeCharIndex);
+
         isTracing = true;
         tracePoints = [coords];
         offPathPoints = [];
@@ -767,11 +883,12 @@ const Tracer = (function () {
 
     function handleMouseMove(e) {
         if (!isTracing) return;
-
         var coords = getCanvasCoordinates(e);
         tracePoints.push(coords);
+        updateSegmentProgress();
+        updateProgressFraction();
 
-        var onPath = isPointOnPath(coords.x, coords.y);
+        var onPath = isPointOnActivePath(coords.x, coords.y);
         if (!onPath) {
             offPathPoints.push(coords);
             if (offPathPoints.length > 20) offPathPoints.shift();
@@ -786,66 +903,62 @@ const Tracer = (function () {
         isTracing = false;
         offPathPoints = [];
 
-        var pathData = Paths.getPath(currentCharacter);
-        if (pathData && isCharacterComplete(pathData)) {
-            onCharacterSuccess();
+        if (isActiveCharComplete()) {
+            onSubCharSuccess();
         } else {
-            onCharacterFailure();
+            onSubCharFailure();
         }
     }
 
-    function onCharacterSuccess() {
-        charactersTraced.push({
-            character: currentCharacter,
-            success: true,
-            timestamp: Date.now(),
-            mistakesCount: mistakesCount,
-            hintsUsed: hintsUsed
-        });
-        successCount++;
+    function isPointNearActiveChar(px, py) {
+        var layouts = getCharLayout();
+        if (activeCharIndex >= layouts.length) return false;
+        var L = layouts[activeCharIndex];
+        if (!L.pathData) return true;
+
+        var scale = L.scale;
+        var tolerancePx = (tracingTolerance / 100) * BASE_CHAR_SIZE * scale * 1.5;
+        var cx = L.x + L.width / 2;
+        var cy = canvas.height / 2;
+        var halfW = L.width / 2 + tolerancePx;
+        var halfH = (L.pathData.boundingBox.height * scale) / 2 + tolerancePx;
+
+        return Math.abs(px - cx) <= halfW && Math.abs(py - cy) <= halfH;
+    }
+
+    function onSubCharSuccess() {
+        var ch = renderChars[activeCharIndex];
+        pathCoverageMap[ch] = 1;
+        segmentSamples = [];
+        currentSegmentIndex = 0;
 
         if (typeof Sound !== 'undefined') {
             Sound.init();
             Sound.match();
+            speakCharSuccess(ch);
+        }
 
-            if (currentMode === "letters") {
-                var pathData = Paths.getPath(currentCharacter);
-                if (pathData && pathData.exampleWord) {
-                    Sound.speak(currentCharacter + " is for " + pathData.exampleWord + "!");
-                } else {
-                    Sound.speak("Great! " + currentCharacter);
-                }
-            } else if (currentMode === "numbers") {
-                Sound.speak(numberToWords(parseInt(currentCharacter)));
-            } else if (currentMode === "multi-digit") {
-                Sound.speak(currentCharacter);
-            } else if (currentMode === "words" && currentWordEntry) {
-                var letters = currentWordEntry.letters.join(", ");
-                Sound.speak(letters + "! " + currentWordEntry.word.toLowerCase() + "!");
-            } else {
-                Sound.speak("Great!");
+        activeCharIndex++;
+        tracePoints = [];
+        offPathPoints = [];
+        progressFraction = 0;
+
+        if (activeCharIndex >= renderChars.length) {
+            onFullCharacterSuccess();
+        } else {
+            showStrokeHints = DIFFICULTY_CONFIG[currentDifficulty].showHints;
+            updatePromptBanner();
+            if (typeof Sound !== 'undefined') {
+                setTimeout(function () { announceSubChar(); }, 400);
             }
         }
-
-        if (charactersTraced.length >= charactersPerSet) {
-            setComplete = true;
-            setTimeout(showCelebration, 500);
-        } else {
-            setTimeout(loadNewCharacter, 800);
-        }
-
-        tracePoints = [];
     }
 
-    function onCharacterFailure() {
+    function onSubCharFailure() {
         failureCount++;
-        charactersTraced.push({
-            character: currentCharacter,
-            success: false,
-            timestamp: Date.now(),
-            mistakesCount: mistakesCount,
-            hintsUsed: hintsUsed
-        });
+        tracePoints = [];
+        segmentSamples = [];
+        currentSegmentIndex = 0;
 
         if (typeof Sound !== 'undefined') {
             Sound.init();
@@ -853,40 +966,90 @@ const Tracer = (function () {
             Sound.speak("Try again!");
         }
 
-        setTimeout(function () {
-            tracePoints = [];
-
-            if (failureCount >= 3) {
-                showAutoHint();
-                failureCount = 0;
-            } else {
-                loadNewCharacter();
+        if (failureCount >= 3) {
+            showStrokeHints = true;
+            failureCount = 0;
+            if (typeof Sound !== 'undefined') {
+                Sound.speak("Follow the numbered dots!");
             }
-        }, 500);
+        }
     }
 
-    function showAutoHint() {
-        showStrokeHints = true;
-        tracePoints = [];
+    function onFullCharacterSuccess() {
+        successCount++;
+        charactersTraced.push({
+            character: currentCharacter,
+            success: true,
+            timestamp: Date.now(),
+            mistakesCount: mistakesCount,
+            hintsUsed: hintsUsed
+        });
 
         if (typeof Sound !== 'undefined') {
-            Sound.speak("Follow the numbered dots!");
+            Sound.celebrate();
+            speakFullSuccess();
+        }
+
+        if (charactersTraced.length >= charactersPerSet) {
+            setTimeout(showCelebration, 500);
+        } else {
+            setTimeout(loadNewCharacter, 800);
+        }
+    }
+
+    function speakCharSuccess(ch) {
+        if (typeof Sound === 'undefined') return;
+        if (currentMode === "letters") {
+            var pd = Paths.getPath(ch);
+            if (pd && pd.exampleWord) {
+                Sound.speak(ch + " is for " + pd.exampleWord + "!");
+            } else {
+                Sound.speak("Great! " + ch);
+            }
+        } else if (currentMode === "numbers") {
+            Sound.speak(numberToWords(parseInt(ch)));
+        } else if (currentMode === "multi-digit") {
+            Sound.speak(numberToWords(parseInt(ch)));
+        } else if (currentMode === "words" && currentWordEntry) {
+            Sound.speak(ch);
+        }
+    }
+
+    function speakFullSuccess() {
+        if (typeof Sound === 'undefined') return;
+        if (currentMode === "words" && currentWordEntry) {
+            var letters = currentWordEntry.letters.join(", ");
+            Sound.speak(letters + "! " + currentWordEntry.word.toLowerCase() + "!");
+        } else if (currentMode === "multi-digit") {
+            Sound.speak(numberToWords(parseInt(currentCharacter)));
+        }
+    }
+
+    function announceSubChar() {
+        if (typeof Sound === 'undefined') return;
+        if (activeCharIndex >= renderChars.length) return;
+        var ch = renderChars[activeCharIndex];
+
+        if (currentMode === "numbers") {
+            Sound.speak("Trace the number " + numberToWords(parseInt(ch)));
+        } else if (currentMode === "letters") {
+            Sound.speak("Trace the letter " + ch);
+        } else if (currentMode === "multi-digit") {
+            Sound.speak("Now trace " + numberToWords(parseInt(ch)));
+        } else if (currentMode === "words" && currentWordEntry) {
+            Sound.speak("Trace the letter " + ch);
         }
     }
 
     function numberToWords(num) {
-        if (isNaN(num) || num < 0 || num > 100) return (num || 0).toString();
-
+        if (isNaN(num) || num < 0 || num > 999) return (num || 0).toString();
         var ones = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
                      "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
                      "seventeen", "eighteen", "nineteen"];
         var tens = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
-
         if (num <= 19) return ones[num];
-        if (num < 100) {
-            return tens[Math.floor(num / 10)] + (num % 10 ? " " + ones[num % 10] : "");
-        }
-        return "one hundred";
+        if (num < 100) return tens[Math.floor(num / 10)] + (num % 10 ? " " + ones[num % 10] : "");
+        return numberToWords(Math.floor(num / 100)) + " hundred" + (num % 100 ? " " + numberToWords(num % 100) : "");
     }
 
     function loadNewCharacter() {
@@ -896,32 +1059,35 @@ const Tracer = (function () {
         mistakesCount = 0;
         hintsUsed = 0;
         progressFraction = 0;
+        pathCoverageMap = {};
+        segmentSamples = [];
+        currentSegmentIndex = 0;
         showStrokeHints = DIFFICULTY_CONFIG[currentDifficulty].showHints;
 
-        var charList = [];
-        var sequence = [];
         var tracedSet = {};
         for (var t = 0; t < charactersTraced.length; t++) {
             tracedSet[charactersTraced[t].character] = true;
         }
 
         currentWordEntry = null;
+        renderChars = [];
+        activeCharIndex = 0;
 
         switch (currentMode) {
             case "numbers":
-                charList = Paths.getCharactersForMode("numbers");
-                var availNum = charList.filter(function (c) { return !tracedSet[c]; });
-                if (availNum.length === 0) availNum = charList;
+                var nums = Paths.getCharactersForMode("numbers");
+                var availNum = nums.filter(function (c) { return !tracedSet[c]; });
+                if (availNum.length === 0) availNum = nums;
                 currentCharacter = availNum[Math.floor(Math.random() * availNum.length)];
-                sequence = [currentCharacter];
+                renderChars = [currentCharacter];
                 break;
 
             case "letters":
-                charList = Paths.getCharactersForMode("letters");
-                var availLet = charList.filter(function (c) { return !tracedSet[c]; });
-                if (availLet.length === 0) availLet = charList;
+                var lets = Paths.getCharactersForMode("letters");
+                var availLet = lets.filter(function (c) { return !tracedSet[c]; });
+                if (availLet.length === 0) availLet = lets;
                 currentCharacter = availLet[Math.floor(Math.random() * availLet.length)];
-                sequence = [currentCharacter];
+                renderChars = [currentCharacter];
                 break;
 
             case "multi-digit":
@@ -930,52 +1096,47 @@ const Tracer = (function () {
                 var maxNum = numDigits === 3 ? 999 : 99;
                 var num = Math.floor(Math.random() * (maxNum - minNum + 1)) + minNum;
                 currentCharacter = num.toString();
-                sequence = currentCharacter.split('');
+                renderChars = currentCharacter.split('');
                 break;
 
             case "words":
                 var words = Paths.getWordEntries();
                 currentWordEntry = words[Math.floor(Math.random() * words.length)];
                 currentCharacter = currentWordEntry.word;
-                sequence = currentWordEntry.letters;
+                renderChars = currentWordEntry.letters.slice();
                 break;
         }
-
-        characterSequence = sequence;
-        currentCharacterIndex = 0;
 
         updatePromptBanner();
 
         if (typeof Sound !== 'undefined') {
-            setTimeout(function () {
-                announceCharacter();
-            }, 300);
+            setTimeout(function () { announceCharacter(); }, 300);
         }
     }
 
     function updatePromptBanner() {
         if (!promptBanner) return;
+        var ch = activeCharIndex < renderChars.length ? renderChars[activeCharIndex] : '';
 
         if (currentMode === "numbers") {
-            promptBanner.textContent = "Trace the number " + currentCharacter + "!";
+            promptBanner.textContent = "Trace the number " + (renderChars.length > 1 ? currentCharacter : ch) + "!";
         } else if (currentMode === "letters") {
-            promptBanner.textContent = "Trace the letter " + currentCharacter + "!";
+            promptBanner.textContent = "Trace the letter " + ch + "!";
         } else if (currentMode === "multi-digit") {
-            promptBanner.textContent = "Trace " + currentCharacter + "!";
+            promptBanner.textContent = "Trace " + currentCharacter + "! Letter " + (activeCharIndex + 1) + " of " + renderChars.length;
         } else if (currentMode === "words" && currentWordEntry) {
-            promptBanner.textContent = "Trace " + currentWordEntry.word + "!";
+            promptBanner.textContent = "Trace " + currentWordEntry.word + "! Letter " + (activeCharIndex + 1) + " of " + renderChars.length;
         }
     }
 
     function announceCharacter() {
         if (typeof Sound === 'undefined') return;
-
         if (currentMode === "numbers") {
             Sound.speak("Trace the number " + numberToWords(parseInt(currentCharacter)));
         } else if (currentMode === "letters") {
             Sound.speak("Trace the letter " + currentCharacter);
         } else if (currentMode === "multi-digit") {
-            Sound.speak("Trace " + numberToWords(parseInt(currentCharacter)));
+            Sound.speak("Trace the number " + numberToWords(parseInt(currentCharacter)));
         } else if (currentMode === "words" && currentWordEntry) {
             Sound.speak("Trace the word " + currentWordEntry.word.toLowerCase());
         }
@@ -983,6 +1144,8 @@ const Tracer = (function () {
 
     function showCelebration() {
         if (!celebrationEl) return;
+
+        spawnConfetti();
 
         var phrase = PRAISE_PHRASES[Math.floor(Math.random() * PRAISE_PHRASES.length)];
         celebrationTitle.textContent = phrase;
@@ -993,7 +1156,7 @@ const Tracer = (function () {
         } else if (currentMode === "letters") {
             msg = "You traced " + successCount + " letter" + (successCount !== 1 ? "s" : "") + "!";
         } else if (currentMode === "multi-digit") {
-            msg = "You traced " + successCount + " multi-digit number" + (successCount !== 1 ? "s" : "") + "!";
+            msg = "You traced " + successCount + " number" + (successCount !== 1 ? "s" : "") + "!";
         } else {
             msg = "You traced " + successCount + " word" + (successCount !== 1 ? "s" : "") + "!";
         }
@@ -1026,8 +1189,58 @@ const Tracer = (function () {
         if (celebrationEl) celebrationEl.style.display = 'none';
     }
 
+    function spawnConfetti() {
+        confettiParts = [];
+        var colors = ['#FF6B6B', '#FFE66D', '#4ECDC4', '#AA96DA', '#F38181', '#95E1D3', '#FCBAD3', '#B8E986'];
+        for (var i = 0; i < 60; i++) {
+            confettiParts.push({
+                x: canvas.width / 2 + (Math.random() - 0.5) * canvas.width * 0.5,
+                y: canvas.height / 2,
+                vx: (Math.random() - 0.5) * 8,
+                vy: -Math.random() * 10 - 4,
+                w: Math.random() * 10 + 4,
+                h: Math.random() * 6 + 3,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                rotation: Math.random() * 360,
+                rotSpeed: (Math.random() - 0.5) * 12,
+                life: 1
+            });
+        }
+    }
+
+    function renderConfetti() {
+        if (confettiParts.length === 0) return;
+        var gravity = 0.25;
+        var alive = [];
+
+        ctx.save();
+        for (var i = 0; i < confettiParts.length; i++) {
+            var p = confettiParts[i];
+            p.vy += gravity;
+            p.x += p.vx;
+            p.y += p.vy;
+            p.rotation += p.rotSpeed;
+            p.life -= 0.008;
+
+            if (p.life <= 0 || p.y > canvas.height + 50) continue;
+
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation * Math.PI / 180);
+            ctx.globalAlpha = Math.max(0, p.life);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+            ctx.restore();
+
+            alive.push(p);
+        }
+        ctx.restore();
+        confettiParts = alive;
+    }
+
     function playAgain() {
         hideCelebration();
+        confettiParts = [];
         resetSession();
         loadNewCharacter();
     }
@@ -1046,13 +1259,10 @@ const Tracer = (function () {
         } catch (e) {
             console.warn('Tracer: Failed to save session', e);
         }
-
         window.location.href = '../index.html';
     }
 
-    return {
-        init: init
-    };
+    return { init: init };
 
 })();
 

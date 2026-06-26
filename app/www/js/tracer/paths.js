@@ -24,98 +24,99 @@ const Paths = (function () {
         // ═══════════════════════════════════════════════════════════
 
         "0": {
-            paths: ["M 50 10 C 20 10, 10 40, 50 90 C 90 90, 90 40, 50 10"],
+            paths: ["M 50 12 C 25 12, 15 40, 15 50 C 15 60, 25 88, 50 88 C 75 88, 85 60, 85 50 C 85 40, 75 12, 50 12"],
             strokeOrder: [1],
-            boundingBox: { x: 10, y: 10, width: 80, height: 80 },
+            boundingBox: { x: 15, y: 12, width: 70, height: 76 },
             exampleWord: null,
             category: null
         },
 
         "1": {
-            paths: ["M 40 15 L 50 10 L 50 90"],
+            paths: ["M 35 25 L 50 12 L 50 88"],
             strokeOrder: [1],
-            boundingBox: { x: 30, y: 10, width: 30, height: 80 },
+            boundingBox: { x: 30, y: 12, width: 25, height: 76 },
             exampleWord: null,
             category: null
         },
 
         "2": {
             paths: [
-                "M 30 35 C 30 15, 70 15, 70 35 C 70 55, 30 75, 30 85 L 70 85"
+                "M 25 38 C 25 18, 40 12, 50 12 C 60 12, 75 18, 75 32 C 75 45, 60 58, 40 72 L 25 85 L 75 85"
             ],
             strokeOrder: [1],
-            boundingBox: { x: 20, y: 15, width: 60, height: 75 },
+            boundingBox: { x: 20, y: 12, width: 60, height: 76 },
             exampleWord: null,
             category: null
         },
 
         "3": {
             paths: [
-                "M 30 25 C 50 10, 75 25, 60 50 C 45 65, 75 80, 50 90"
+                "M 30 20 C 30 14, 42 12, 50 12 C 60 12, 75 18, 75 30 C 75 42, 60 48, 50 48 C 55 48, 75 52, 75 65 C 75 80, 60 88, 50 88 C 40 88, 28 84, 25 78"
             ],
             strokeOrder: [1],
-            boundingBox: { x: 25, y: 15, width: 55, height: 75 },
+            boundingBox: { x: 20, y: 12, width: 60, height: 76 },
             exampleWord: null,
             category: null
         },
 
         "4": {
             paths: [
-                "M 65 15 L 65 85",           // Vertical line (stroke 1)
-                "M 25 55 L 75 55 L 55 15"    // Horizontal + diagonal (stroke 2)
+                "M 70 88 L 70 12",
+                "M 15 55 L 70 55"
             ],
             strokeOrder: [1, 2],
-            boundingBox: { x: 25, y: 15, width: 50, height: 75 },
+            boundingBox: { x: 15, y: 12, width: 60, height: 76 },
             exampleWord: null,
             category: null
         },
 
         "5": {
             paths: [
-                "M 65 20 L 35 20 L 35 50 C 55 45, 75 60, 65 85"
+                "M 70 12 L 30 12 L 28 45 C 35 42, 45 40, 50 40 C 65 40, 78 50, 78 65 C 78 80, 65 88, 50 88 C 38 88, 28 82, 22 75"
             ],
             strokeOrder: [1],
-            boundingBox: { x: 25, y: 15, width: 55, height: 75 },
+            boundingBox: { x: 18, y: 12, width: 62, height: 76 },
             exampleWord: null,
             category: null
         },
 
         "6": {
             paths: [
-                "M 65 25 C 80 50, 70 90, 40 90 C 15 90, 15 60, 30 45 C 50 25, 75 30, 65 55"
+                "M 62 18 C 55 14, 45 12, 38 12 C 25 12, 15 22, 15 50 L 15 65 C 15 80, 28 88, 42 88 C 55 88, 65 80, 65 68 C 65 55, 55 48, 42 48 C 30 48, 20 55, 15 62"
             ],
             strokeOrder: [1],
-            boundingBox: { x: 15, y: 20, width: 65, height: 75 },
+            boundingBox: { x: 12, y: 12, width: 56, height: 76 },
             exampleWord: null,
             category: null
         },
 
         "7": {
             paths: [
-                "M 25 20 L 75 20 L 40 90"
+                "M 25 12 L 75 12 L 45 88"
             ],
             strokeOrder: [1],
-            boundingBox: { x: 20, y: 15, width: 60, height: 80 },
+            boundingBox: { x: 22, y: 12, width: 56, height: 76 },
             exampleWord: null,
             category: null
         },
 
         "8": {
             paths: [
-                "M 50 20 C 30 10, 15 35, 50 50 C 85 35, 85 65, 50 80 C 15 65, 15 35, 50 20"
+                "M 50 48 C 30 42, 22 32, 22 25 C 22 16, 35 12, 50 12 C 65 12, 78 16, 78 25 C 78 32, 70 42, 50 48 C 30 54, 22 64, 22 75 C 22 84, 35 88, 50 88 C 65 88, 78 84, 78 75 C 78 64, 70 54, 50 48"
             ],
             strokeOrder: [1],
-            boundingBox: { x: 15, y: 15, width: 70, height: 70 },
+            boundingBox: { x: 18, y: 12, width: 64, height: 76 },
             exampleWord: null,
             category: null
         },
 
         "9": {
             paths: [
-                "M 35 75 C 20 90, 30 15, 60 15 C 85 15, 85 45, 65 60 C 45 75, 25 65, 35 45"
+                "M 50 15 C 30 15, 18 28, 18 42 C 18 56, 30 68, 50 68 C 68 68, 78 56, 78 42 C 78 28, 68 15, 50 15",
+                "M 50 55 C 58 65, 62 78, 55 88"
             ],
-            strokeOrder: [1],
-            boundingBox: { x: 20, y: 15, width: 65, height: 75 },
+            strokeOrder: [1, 2],
+            boundingBox: { x: 15, y: 12, width: 68, height: 80 },
             exampleWord: null,
             category: null
         },
@@ -138,8 +139,8 @@ const Paths = (function () {
 
         "B": {
             paths: [
-                "M 30 15 L 30 85",           // Vertical line (stroke 1)
-                "M 30 15 C 70 10, 80 30, 50 45 C 75 55, 80 75, 30 85"  // Top curve (stroke 2)
+                "M 30 15 L 30 85",
+                "M 30 15 C 70 10, 80 30, 80 32 C 80 45, 65 50, 30 50 C 70 50, 80 65, 80 68 C 80 80, 65 88, 30 85"
             ],
             strokeOrder: [1, 2],
             boundingBox: { x: 20, y: 15, width: 65, height: 75 },
@@ -159,8 +160,8 @@ const Paths = (function () {
 
         "D": {
             paths: [
-                "M 30 15 L 30 85",           // Vertical line (stroke 1)
-                "M 30 15 C 75 15, 85 45, 60 85 C 35 85, 30 85, 30 85"  // Curve (stroke 2)
+                "M 30 15 L 30 85",
+                "M 30 15 C 75 15, 85 50, 70 75 C 60 88, 40 88, 30 85"
             ],
             strokeOrder: [1, 2],
             boundingBox: { x: 20, y: 15, width: 65, height: 75 },
@@ -192,7 +193,7 @@ const Paths = (function () {
 
         "G": {
             paths: [
-                "M 65 30 C 55 15, 25 20, 20 50 C 15 80, 45 95, 75 80 L 65 60"
+                "M 65 30 C 55 15, 25 20, 20 50 C 15 80, 45 95, 75 80 L 55 80 L 55 60"
             ],
             strokeOrder: [1],
             boundingBox: { x: 15, y: 15, width: 65, height: 75 },
@@ -275,7 +276,7 @@ const Paths = (function () {
 
         "O": {
             paths: [
-                "M 50 15 C 20 15, 15 45, 25 70 C 35 95, 65 95, 80 70 C 95 45, 80 15, 50 15"
+                "M 50 15 C 25 15, 15 35, 15 50 C 15 65, 25 88, 50 88 C 75 88, 85 65, 85 50 C 85 35, 75 15, 50 15"
             ],
             strokeOrder: [1],
             boundingBox: { x: 15, y: 15, width: 70, height: 80 },
@@ -285,7 +286,7 @@ const Paths = (function () {
 
         "P": {
             paths: [
-                "M 30 85 L 30 15 L 65 15 C 85 15, 85 45, 60 50 C 35 55, 30 55, 30 55"
+                "M 30 85 L 30 15 L 65 15 C 85 15, 85 45, 60 50 C 45 55, 30 55, 30 55"
             ],
             strokeOrder: [1],
             boundingBox: { x: 20, y: 15, width: 65, height: 75 },
@@ -295,8 +296,8 @@ const Paths = (function () {
 
         "Q": {
             paths: [
-                "M 50 15 C 20 15, 15 45, 25 70 C 35 95, 65 95, 80 70 C 95 45, 80 15, 50 15",
-                "M 55 65 L 75 90"
+                "M 50 15 C 25 15, 15 35, 15 50 C 15 65, 25 88, 50 88 C 75 88, 85 65, 85 50 C 85 35, 75 15, 50 15",
+                "M 60 65 L 80 88"
             ],
             strokeOrder: [1, 2],
             boundingBox: { x: 15, y: 15, width: 70, height: 80 },
@@ -306,8 +307,8 @@ const Paths = (function () {
 
         "R": {
             paths: [
-                "M 30 85 L 30 15 L 65 15 C 85 15, 85 45, 60 50 C 35 55, 30 55",
-                "M 45 50 L 70 85"
+                "M 30 85 L 30 15 L 65 15 C 85 15, 85 45, 60 50 C 40 55, 30 55, 30 55",
+                "M 30 50 L 70 85"
             ],
             strokeOrder: [1, 2],
             boundingBox: { x: 20, y: 15, width: 60, height: 75 },
@@ -317,7 +318,7 @@ const Paths = (function () {
 
         "S": {
             paths: [
-                "M 65 25 C 75 15, 45 15, 35 30 C 25 45, 75 55, 65 80 C 55 95, 25 85, 30 70"
+                "M 65 25 C 75 15, 45 12, 35 25 C 25 38, 45 50, 55 55 C 65 60, 80 68, 75 78 C 70 90, 45 92, 30 82"
             ],
             strokeOrder: [1],
             boundingBox: { x: 20, y: 15, width: 60, height: 75 },
