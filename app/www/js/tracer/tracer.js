@@ -37,9 +37,9 @@ const Tracer = (function () {
     var CHAR_GAP = 15;
 
     var DIFFICULTY_CONFIG = {
-        "easy":   { tolerance: 50, setSize: 3, hintFrequency: 1, showHints: true },
-        "medium": { tolerance: 35, setSize: 5, hintFrequency: 1, showHints: false },
-        "hard":   { tolerance: 20, setSize: 8, hintFrequency: 3, showHints: false }
+        "easy":   { tolerance: 35, setSize: 3, hintFrequency: 1, showHints: true },
+        "medium": { tolerance: 25, setSize: 5, hintFrequency: 1, showHints: false },
+        "hard":   { tolerance: 15, setSize: 8, hintFrequency: 3, showHints: false }
     };
 
     var PRAISE_PHRASES = [
@@ -535,7 +535,7 @@ const Tracer = (function () {
             }
         }
 
-        var totalSegs = 20;
+        var totalSegs = 40;
         var segSize = Math.max(1, Math.floor(rawPoints.length / totalSegs));
         for (var k = 0; k < totalSegs && k * segSize < rawPoints.length; k++) {
             var segPoints = [];
@@ -588,7 +588,7 @@ const Tracer = (function () {
                     }
                 }
             }
-            var threshold = Math.max(1, Math.ceil(seg.points.length * 0.7));
+            var threshold = Math.max(1, Math.ceil(seg.points.length * 0.8));
             seg.complete = (covered >= threshold);
         }
     }
