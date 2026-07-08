@@ -112,11 +112,10 @@ const Paths = (function () {
 
         "9": {
             paths: [
-                "M 50 15 C 30 15, 18 28, 18 42 C 18 56, 30 68, 50 68 C 68 68, 78 56, 78 42 C 78 28, 68 15, 50 15",
-                "M 50 68 C 56 76, 60 84, 52 90"
+                "M 61 30 C 61 19, 53 12, 42 12 C 31 12, 23 19, 23 30 C 23 41, 31 48, 42 48 C 53 48, 61 41, 61 30 L 61 74 C 61 82, 56 88, 49 88"
             ],
-            strokeOrder: [1, 2],
-            boundingBox: { x: 15, y: 12, width: 68, height: 80 },
+            strokeOrder: [1],
+            boundingBox: { x: 20, y: 12, width: 44, height: 76 },
             exampleWord: null,
             category: null
         },

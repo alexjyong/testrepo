@@ -30,16 +30,23 @@ const Tracer = (function () {
     var renderLoopId = null;
     var progressFraction = 0;
     var pathCoverageMap = {};
-    var currentSegmentIndex = 0;
-    var segmentSamples = [];
+    var strokeTrackers = [];
+    var currentStrokeIndex = 0;
+    var gestureStartProgress = 0;
+    var needsAnchor = false;
+    var keepProgressOnLift = true;
+    var enforceDirection = false;
 
     var BASE_CHAR_SIZE = 100;
     var CHAR_GAP = 15;
+    var SAMPLE_SPACING = 4;
+    var LOOKAHEAD = 6;
+    var MIN_TOLERANCE_PX = 24;
 
     var DIFFICULTY_CONFIG = {
-        "easy":   { tolerance: 35, setSize: 3, hintFrequency: 1, showHints: true },
-        "medium": { tolerance: 25, setSize: 5, hintFrequency: 1, showHints: false },
-        "hard":   { tolerance: 15, setSize: 8, hintFrequency: 3, showHints: false }
+        "easy":   { tolerance: 20, setSize: 3, hintFrequency: 1, showHints: true,  keepProgressOnLift: true,  enforceDirection: false, maxWordLength: 3 },
+        "medium": { tolerance: 15, setSize: 5, hintFrequency: 1, showHints: false, keepProgressOnLift: false, enforceDirection: true,  maxWordLength: 5 },
+        "hard":   { tolerance: 10, setSize: 8, hintFrequency: 3, showHints: false, keepProgressOnLift: false, enforceDirection: true,  maxWordLength: 99 }
     };
 
     var PRAISE_PHRASES = [
@@ -166,6 +173,8 @@ const Tracer = (function () {
         charactersPerSet = config.setSize;
         hintFrequency = config.hintFrequency;
         showStrokeHints = config.showHints;
+        keepProgressOnLift = config.keepProgressOnLift;
+        enforceDirection = config.enforceDirection;
     }
 
     function syncButtonStates() {
@@ -202,6 +211,7 @@ const Tracer = (function () {
         if (w > 0 && h > 0) {
             canvas.width = w;
             canvas.height = h;
+            buildStrokeTrackers(true);
         }
     }
 
@@ -219,6 +229,7 @@ const Tracer = (function () {
 
         if (renderChars.length > 0) {
             drawAllCharacters();
+            drawTracedPrefix();
             drawActiveCharStrokeHints();
             drawActiveCharHintLabels();
             drawGlowTrail();
@@ -300,11 +311,12 @@ const Tracer = (function () {
                     ctx.strokeStyle = '#4ECDC4';
                     ctx.lineWidth = 8;
                 } else if (isActive) {
-                    if (coverage > 0.95) {
+                    var tracker = strokeTrackers[s];
+                    if (tracker && tracker.done) {
                         ctx.setLineDash([]);
                         ctx.strokeStyle = '#4ECDC4';
                         ctx.lineWidth = 8;
-                    } else if (s === 0 || L.pathData.paths.length === 1) {
+                    } else if (s === currentStrokeIndex) {
                         ctx.setLineDash([8, 4]);
                         ctx.strokeStyle = 'rgba(78, 205, 196, ' + (0.3 + 0.7 * coverage) + ')';
                         ctx.lineWidth = 3 + 5 * coverage;
@@ -325,6 +337,26 @@ const Tracer = (function () {
 
             ctx.restore();
         }
+    }
+
+    function drawTracedPrefix() {
+        if (activeCharIndex >= renderChars.length) return;
+        var tracker = strokeTrackers[currentStrokeIndex];
+        if (!tracker || tracker.done || tracker.progressIdx < 1) return;
+
+        ctx.save();
+        ctx.setLineDash([]);
+        ctx.strokeStyle = '#4ECDC4';
+        ctx.lineWidth = 8;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(tracker.points[0].x, tracker.points[0].y);
+        for (var i = 1; i <= tracker.progressIdx; i++) {
+            ctx.lineTo(tracker.points[i].x, tracker.points[i].y);
+        }
+        ctx.stroke();
+        ctx.restore();
     }
 
     function drawActiveCharStrokeHints() {
@@ -495,142 +527,314 @@ const Tracer = (function () {
         ctx.restore();
     }
 
-    function buildSegmentSamples(pathData, charIdx) {
-        segmentSamples = [];
-        var layouts = getCharLayout();
-        if (charIdx >= layouts.length) return;
-        var L = layouts[charIdx];
-        var tolerancePx = getTolerancePx(charIdx);
+    function samplePathDense(pathString) {
+        var commands = pathString.match(/[MLCZ]|[+-]?\d*\.?\d+/g);
+        if (!commands) return [];
 
-        var rawPoints = [];
-        for (var i = 0; i < pathData.paths.length; i++) {
-            var commands = pathData.paths[i].match(/[MLCZ]|[+-]?\d*\.?\d+/g);
-            if (!commands) continue;
-            var x = 0, y = 0, prevX = 0, prevY = 0;
-            var segs = [];
-            for (var j = 0; j < commands.length; j++) {
-                var cmd = commands[j];
-                if (cmd === 'M' || cmd === 'm') {
-                    j++; x = parseFloat(commands[j]);
-                    j++; y = parseFloat(commands[j]);
-                    prevX = x; prevY = y;
-                } else if (cmd === 'L' || cmd === 'l') {
-                    j++; x = parseFloat(commands[j]);
-                    j++; y = parseFloat(commands[j]);
-                    segs.push(lineSegs(prevX, prevY, x, y, 10));
-                    prevX = x; prevY = y;
-                } else if (cmd === 'C' || cmd === 'c') {
-                    j++; var cx1 = parseFloat(commands[j]);
-                    j++; var cy1 = parseFloat(commands[j]);
-                    j++; var cx2 = parseFloat(commands[j]);
-                    j++; var cy2 = parseFloat(commands[j]);
-                    j++; var ex = parseFloat(commands[j]);
-                    j++; var ey = parseFloat(commands[j]);
-                    segs.push(bezSegs(prevX, prevY, cx1, cy1, cx2, cy2, ex, ey, 15));
-                    prevX = ex; prevY = ey;
-                }
-            }
-            for (var s = 0; s < segs.length; s++) {
-                rawPoints = rawPoints.concat(segs[s]);
+        var pts = [];
+        var x = 0, y = 0, prevX = 0, prevY = 0;
+        for (var j = 0; j < commands.length; j++) {
+            var cmd = commands[j];
+            if (cmd === 'M' || cmd === 'm') {
+                j++; x = parseFloat(commands[j]);
+                j++; y = parseFloat(commands[j]);
+                prevX = x; prevY = y;
+                pts.push({ x: x, y: y });
+            } else if (cmd === 'L' || cmd === 'l') {
+                j++; x = parseFloat(commands[j]);
+                j++; y = parseFloat(commands[j]);
+                pts = pts.concat(lineSegs(prevX, prevY, x, y, 24));
+                prevX = x; prevY = y;
+            } else if (cmd === 'C' || cmd === 'c') {
+                j++; var cx1 = parseFloat(commands[j]);
+                j++; var cy1 = parseFloat(commands[j]);
+                j++; var cx2 = parseFloat(commands[j]);
+                j++; var cy2 = parseFloat(commands[j]);
+                j++; var ex = parseFloat(commands[j]);
+                j++; var ey = parseFloat(commands[j]);
+                pts = pts.concat(bezSegs(prevX, prevY, cx1, cy1, cx2, cy2, ex, ey, 32));
+                prevX = ex; prevY = ey;
             }
         }
+        return pts;
+    }
 
-        var totalSegs = 40;
-        var segSize = Math.max(1, Math.floor(rawPoints.length / totalSegs));
-        for (var k = 0; k < totalSegs && k * segSize < rawPoints.length; k++) {
-            var segPoints = [];
-            for (var m = 0; m < segSize && (k * segSize + m) < rawPoints.length; m++) {
-                var rp = rawPoints[k * segSize + m];
-                segPoints.push({
-                    x: rp.x * L.scale + L.offsetX,
-                    y: rp.y * L.scale + L.offsetY
+    function resampleByArcLength(pts, spacing) {
+        if (pts.length < 2) return pts.slice();
+
+        var out = [{ x: pts[0].x, y: pts[0].y }];
+        var prev = pts[0];
+        var remaining = spacing;
+
+        for (var i = 1; i < pts.length; i++) {
+            var cur = pts[i];
+            var dx = cur.x - prev.x;
+            var dy = cur.y - prev.y;
+            var d = Math.sqrt(dx * dx + dy * dy);
+            while (d >= remaining) {
+                var t = remaining / d;
+                var nx = prev.x + dx * t;
+                var ny = prev.y + dy * t;
+                out.push({ x: nx, y: ny });
+                prev = { x: nx, y: ny };
+                dx = cur.x - prev.x;
+                dy = cur.y - prev.y;
+                d = Math.sqrt(dx * dx + dy * dy);
+                remaining = spacing;
+            }
+            remaining -= d;
+            prev = cur;
+        }
+
+        var last = pts[pts.length - 1];
+        var tail = out[out.length - 1];
+        if (Math.abs(last.x - tail.x) > 0.01 || Math.abs(last.y - tail.y) > 0.01) {
+            out.push({ x: last.x, y: last.y });
+        }
+        return out;
+    }
+
+    function buildStrokeTrackers(preserveProgress) {
+        var old = preserveProgress ? strokeTrackers : null;
+        strokeTrackers = [];
+        if (!preserveProgress) {
+            currentStrokeIndex = 0;
+            needsAnchor = false;
+        }
+        if (activeCharIndex >= renderChars.length) return;
+
+        var pathData = Paths.getPath(renderChars[activeCharIndex]);
+        if (!pathData) return;
+
+        var layouts = getCharLayout();
+        var L = layouts[activeCharIndex];
+        if (!L) return;
+
+        for (var i = 0; i < pathData.paths.length; i++) {
+            var base = resampleByArcLength(samplePathDense(pathData.paths[i]), SAMPLE_SPACING);
+            var points = [];
+            for (var p = 0; p < base.length; p++) {
+                points.push({
+                    x: base[p].x * L.scale + L.offsetX,
+                    y: base[p].y * L.scale + L.offsetY
                 });
             }
-            if (segPoints.length === 0) break;
-            var segCenter = segPoints[0];
-            segmentSamples.push({
-                points: segPoints,
-                center: segCenter,
-                tolerance: tolerancePx,
-                coveredTraceCount: 0,
-                complete: false
-            });
+
+            var tracker = { points: points, progressIdx: 0, done: false, reversed: false };
+            if (old && old[i]) {
+                if (old[i].reversed) {
+                    points.reverse();
+                    tracker.reversed = true;
+                }
+                tracker.done = old[i].done;
+                tracker.progressIdx = Math.min(old[i].progressIdx, points.length - 1);
+            }
+            strokeTrackers.push(tracker);
         }
 
-        currentSegmentIndex = 0;
+        if (currentStrokeIndex >= strokeTrackers.length) {
+            currentStrokeIndex = Math.max(0, strokeTrackers.length - 1);
+        }
     }
 
     function getTolerancePx(charIdx) {
         var pd = charIdx < renderChars.length ? Paths.getPath(renderChars[charIdx]) : null;
         var bboxSize = pd ? Math.max(pd.boundingBox.width, pd.boundingBox.height) : BASE_CHAR_SIZE;
         var scale = getScaleFactor(renderChars.length);
-        return (tracingTolerance / 100) * bboxSize * scale;
+        return Math.max(MIN_TOLERANCE_PX, (tracingTolerance / 100) * bboxSize * scale);
     }
 
-    function evaluateSegments() {
-        if (segmentSamples.length === 0 || tracePoints.length === 0) return;
-        for (var i = 0; i < segmentSamples.length; i++) {
-            segmentSamples[i].complete = false;
+    function dist(a, b) {
+        var dx = a.x - b.x;
+        var dy = a.y - b.y;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function getSpacingPx() {
+        return SAMPLE_SPACING * getScaleFactor(renderChars.length);
+    }
+
+    function getLookaheadCount(tol) {
+        return Math.max(LOOKAHEAD, Math.ceil(tol / getSpacingPx()) + 2);
+    }
+
+    function anchorTracker(tracker, coords, radius) {
+        if (dist(coords, tracker.points[tracker.progressIdx]) <= radius) return true;
+
+        // Barely-started strokes may (re-)anchor at either permitted end, so a
+        // stray flip near the wrong end is always recoverable.
+        if (tracker.progressIdx <= getLookaheadCount(radius)) {
+            if (dist(coords, tracker.points[0]) <= radius) {
+                tracker.progressIdx = 0;
+                return true;
+            }
+            if (!enforceDirection && dist(coords, tracker.points[tracker.points.length - 1]) <= radius) {
+                tracker.points.reverse();
+                tracker.reversed = !tracker.reversed;
+                tracker.progressIdx = 0;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function beginTrace(coords) {
+        if (strokeTrackers.length === 0) buildStrokeTrackers(false);
+        var tracker = strokeTrackers[currentStrokeIndex];
+        if (!tracker || tracker.points.length === 0) return false;
+
+        var tol = getTolerancePx(activeCharIndex);
+        if (!anchorTracker(tracker, coords, tol * 1.5)) return false;
+        needsAnchor = false;
+        advanceMarch(tracker, coords, tol);
+        gestureStartProgress = tracker.progressIdx;
+        return true;
+    }
+
+    function advanceMarch(tracker, pt, tol) {
+        var look = getLookaheadCount(tol);
+        var advancedTo = -1;
+        var limit = Math.min(tracker.progressIdx + look, tracker.points.length - 1);
+        for (var i = tracker.progressIdx + 1; i <= limit; i++) {
+            if (dist(pt, tracker.points[i]) <= tol) advancedTo = i;
         }
 
-        for (var i = 0; i < segmentSamples.length; i++) {
-            var seg = segmentSamples[i];
-            var covered = 0;
-            for (var j = 0; j < seg.points.length; j++) {
-                var sp = seg.points[j];
-                for (var k = 0; k < tracePoints.length; k++) {
-                    var tp = tracePoints[k];
-                    var dx = sp.x - tp.x;
-                    var dy = sp.y - tp.y;
-                    if (Math.sqrt(dx * dx + dy * dy) <= seg.tolerance) {
-                        covered++;
-                        break;
+        // Easy mode: if they just started at the shared endpoint of a closed
+        // loop (e.g. "0") and are moving the "wrong" way, flip direction.
+        if (advancedTo < 0 && !enforceDirection && tracker.progressIdx === 0) {
+            var n = tracker.points.length;
+            for (var r = 1; r <= look; r++) {
+                if (dist(pt, tracker.points[n - 1 - r]) <= tol) {
+                    tracker.points.reverse();
+                    tracker.reversed = !tracker.reversed;
+                    advancedTo = r;
+                    break;
+                }
+            }
+        }
+
+        if (advancedTo >= 0) {
+            tracker.progressIdx = advancedTo;
+            return true;
+        }
+        return false;
+    }
+
+    function moveTrace(coords) {
+        var last = tracePoints.length > 0 ? tracePoints[tracePoints.length - 1] : coords;
+        tracePoints.push(coords);
+
+        var tracker = strokeTrackers[currentStrokeIndex];
+        if (!tracker || tracker.done || tracker.points.length === 0) return;
+
+        var tol = getTolerancePx(activeCharIndex);
+
+        // Moving from a finished stroke to the next one is free transit:
+        // nothing counts until they anchor on the new stroke.
+        if (needsAnchor) {
+            if (anchorTracker(tracker, coords, tol)) {
+                needsAnchor = false;
+                tracePoints = [coords];
+            } else {
+                return;
+            }
+        }
+
+        // Feed intermediate positions so a fast finger can't outrun the march.
+        var gap = dist(last, coords);
+        var step = tol / 2;
+        var advanced = false;
+        if (gap > step) {
+            var n = Math.ceil(gap / step);
+            for (var i = 1; i < n; i++) {
+                var mid = {
+                    x: last.x + (coords.x - last.x) * i / n,
+                    y: last.y + (coords.y - last.y) * i / n
+                };
+                if (advanceMarch(tracker, mid, tol)) advanced = true;
+            }
+        }
+        if (advanceMarch(tracker, coords, tol)) advanced = true;
+
+        var onPath = advanced || dist(coords, tracker.points[tracker.progressIdx]) <= tol;
+        if (onPath) {
+            offPathPoints = [];
+        } else {
+            offPathPoints.push(coords);
+            if (offPathPoints.length > 20) offPathPoints.shift();
+
+            if (!showStrokeHints) {
+                mistakesCount++;
+                if (mistakesCount >= hintFrequency * 3) {
+                    showStrokeHints = true;
+                    hintsUsed++;
+                    if (typeof Sound !== 'undefined') {
+                        Sound.speak("Follow the dotted line!");
                     }
                 }
             }
-            var threshold = Math.max(1, Math.ceil(seg.points.length * 0.8));
-            seg.complete = (covered >= threshold);
+        }
+
+        // Done when the untraced tail is within one tolerance of the end.
+        var forgiven = Math.min(Math.round(tol / getSpacingPx()), Math.floor(tracker.points.length * 0.25));
+        if (tracker.progressIdx >= Math.max(1, tracker.points.length - 1 - forgiven)) {
+            completeStroke(tracker);
         }
     }
 
-    function getSequentialCompletion() {
-        if (segmentSamples.length === 0) return 0;
-        for (var i = 0; i < segmentSamples.length; i++) {
-            if (!segmentSamples[i].complete) {
-                return i;
+    function completeStroke(tracker) {
+        tracker.done = true;
+        tracker.progressIdx = tracker.points.length - 1;
+        offPathPoints = [];
+
+        if (currentStrokeIndex < strokeTrackers.length - 1) {
+            // Keep the gesture alive: they may drag straight to the next
+            // stroke (R, E...) or lift and reposition (4) — both work.
+            currentStrokeIndex++;
+            gestureStartProgress = 0;
+            needsAnchor = true;
+            tracePoints = [];
+            if (typeof Sound !== 'undefined') {
+                Sound.init();
+                Sound.match();
             }
+        } else {
+            isTracing = false;
+            onSubCharSuccess();
         }
-        return segmentSamples.length;
+    }
+
+    function endTrace() {
+        isTracing = false;
+        offPathPoints = [];
+        if (activeCharIndex >= renderChars.length) return;
+        if (needsAnchor) return; // lifted while moving between strokes — no penalty
+
+        var tracker = strokeTrackers[currentStrokeIndex];
+        if (!tracker || tracker.done) return;
+
+        var madeProgress = tracker.progressIdx > gestureStartProgress;
+        if (!keepProgressOnLift) {
+            tracker.progressIdx = 0;
+        }
+        if (!madeProgress || !keepProgressOnLift) {
+            if (tracePoints.length >= 5) onSubCharFailure();
+        }
     }
 
     function updateProgressFraction() {
         if (activeCharIndex >= renderChars.length) { progressFraction = 1; return; }
-        if (segmentSamples.length === 0) { progressFraction = 0; return; }
-        var ch = renderChars[activeCharIndex];
-        var seq = getSequentialCompletion();
-        progressFraction = seq / segmentSamples.length;
-        pathCoverageMap[ch] = progressFraction;
-    }
+        if (strokeTrackers.length === 0) { progressFraction = 0; return; }
 
-    function isActiveCharComplete() {
-        if (segmentSamples.length === 0) return false;
-        var seq = getSequentialCompletion();
-        return (seq / segmentSamples.length) >= 0.9;
-    }
-
-    function isPointOnActivePath(px, py) {
-        if (segmentSamples.length === 0) return true;
-        for (var i = 0; i < segmentSamples.length; i++) {
-            var seg = segmentSamples[i];
-            if (!seg) continue;
-            for (var j = 0; j < seg.points.length; j++) {
-                var sp = seg.points[j];
-                var dx = sp.x - px;
-                var dy = sp.y - py;
-                if (Math.sqrt(dx * dx + dy * dy) <= seg.tolerance) return true;
-            }
+        var total = 0;
+        var advanced = 0;
+        for (var i = 0; i < strokeTrackers.length; i++) {
+            var t = strokeTrackers[i];
+            total += t.points.length;
+            advanced += t.done ? t.points.length : t.progressIdx;
         }
-        return false;
+        progressFraction = total > 0 ? advanced / total : 0;
+        pathCoverageMap[renderChars[activeCharIndex]] = progressFraction;
     }
 
     function lineSegs(x1, y1, x2, y2, n) {
@@ -774,10 +978,7 @@ const Tracer = (function () {
 
         var coords = getCanvasCoordinates(e);
         if (!isPointNearActiveChar(coords.x, coords.y)) return;
-
-        var ch = renderChars[activeCharIndex];
-        var pathData = Paths.getPath(ch);
-        if (pathData) buildSegmentSamples(pathData, activeCharIndex);
+        if (!beginTrace(coords)) return;
 
         isTracing = true;
         tracePoints = [coords];
@@ -788,45 +989,13 @@ const Tracer = (function () {
     function handleTouchMove(e) {
         e.preventDefault();
         if (!isTracing || !e.touches || e.touches.length === 0) return;
-
-        var coords = getCanvasCoordinates(e);
-        tracePoints.push(coords);
-        evaluateSegments();
-        updateProgressFraction();
-
-        var onPath = isPointOnActivePath(coords.x, coords.y);
-        if (!onPath) {
-            offPathPoints.push(coords);
-            if (offPathPoints.length > 20) offPathPoints.shift();
-
-            if (!showStrokeHints) {
-                mistakesCount++;
-                if (mistakesCount >= hintFrequency * 3) {
-                    showStrokeHints = true;
-                    hintsUsed++;
-                    if (typeof Sound !== 'undefined') {
-                        Sound.speak("Follow the dotted line!");
-                    }
-                }
-            }
-        } else {
-            offPathPoints = [];
-        }
+        moveTrace(getCanvasCoordinates(e));
     }
 
     function handleTouchEnd(e) {
         e.preventDefault();
         if (!isTracing) return;
-
-        isTracing = false;
-        offPathPoints = [];
-        evaluateSegments();
-
-        if (isActiveCharComplete()) {
-            onSubCharSuccess();
-        } else {
-            onSubCharFailure();
-        }
+        endTrace();
     }
 
     function handleMouseDown(e) {
@@ -837,10 +1006,7 @@ const Tracer = (function () {
 
         var coords = getCanvasCoordinates(e);
         if (!isPointNearActiveChar(coords.x, coords.y)) return;
-
-        var ch = renderChars[activeCharIndex];
-        var pathData = Paths.getPath(ch);
-        if (pathData) buildSegmentSamples(pathData, activeCharIndex);
+        if (!beginTrace(coords)) return;
 
         isTracing = true;
         tracePoints = [coords];
@@ -850,32 +1016,12 @@ const Tracer = (function () {
 
     function handleMouseMove(e) {
         if (!isTracing) return;
-        var coords = getCanvasCoordinates(e);
-        tracePoints.push(coords);
-        evaluateSegments();
-        updateProgressFraction();
-
-        var onPath = isPointOnActivePath(coords.x, coords.y);
-        if (!onPath) {
-            offPathPoints.push(coords);
-            if (offPathPoints.length > 20) offPathPoints.shift();
-        } else {
-            offPathPoints = [];
-        }
+        moveTrace(getCanvasCoordinates(e));
     }
 
     function handleMouseUp(e) {
         if (!isTracing) return;
-
-        isTracing = false;
-        offPathPoints = [];
-        evaluateSegments();
-
-        if (isActiveCharComplete()) {
-            onSubCharSuccess();
-        } else {
-            onSubCharFailure();
-        }
+        endTrace();
     }
 
     function isPointNearActiveChar(px, py) {
@@ -897,7 +1043,6 @@ const Tracer = (function () {
     function onSubCharSuccess() {
         var ch = renderChars[activeCharIndex];
         pathCoverageMap[ch] = 1;
-        segmentSamples = [];
 
         if (typeof Sound !== 'undefined') {
             Sound.init();
@@ -909,6 +1054,7 @@ const Tracer = (function () {
         tracePoints = [];
         offPathPoints = [];
         progressFraction = 0;
+        buildStrokeTrackers(false);
 
         if (activeCharIndex >= renderChars.length) {
             onFullCharacterSuccess();
@@ -924,7 +1070,6 @@ const Tracer = (function () {
     function onSubCharFailure() {
         failureCount++;
         tracePoints = [];
-        segmentSamples = [];
 
         if (typeof Sound !== 'undefined') {
             Sound.init();
@@ -1026,8 +1171,8 @@ const Tracer = (function () {
         hintsUsed = 0;
         progressFraction = 0;
         pathCoverageMap = {};
-        segmentSamples = [];
-        currentSegmentIndex = 0;
+        strokeTrackers = [];
+        currentStrokeIndex = 0;
         showStrokeHints = DIFFICULTY_CONFIG[currentDifficulty].showHints;
 
         var tracedSet = {};
@@ -1067,12 +1212,16 @@ const Tracer = (function () {
 
             case "words":
                 var words = Paths.getWordEntries();
-                currentWordEntry = words[Math.floor(Math.random() * words.length)];
+                var maxLen = (DIFFICULTY_CONFIG[currentDifficulty] || DIFFICULTY_CONFIG["easy"]).maxWordLength;
+                var availWords = words.filter(function (w) { return w.letters.length <= maxLen; });
+                if (availWords.length === 0) availWords = words;
+                currentWordEntry = availWords[Math.floor(Math.random() * availWords.length)];
                 currentCharacter = currentWordEntry.word;
                 renderChars = currentWordEntry.letters.slice();
                 break;
         }
 
+        buildStrokeTrackers(false);
         updatePromptBanner();
 
         if (typeof Sound !== 'undefined') {
@@ -1228,7 +1377,18 @@ const Tracer = (function () {
         window.location.href = '../index.html';
     }
 
-    return { init: init };
+    return { init: init, _debug: function () {
+        return {
+            isTracing: isTracing,
+            activeCharIndex: activeCharIndex,
+            currentStrokeIndex: currentStrokeIndex,
+            tolerance: getTolerancePx(activeCharIndex),
+            spacing: getSpacingPx(),
+            trackers: strokeTrackers.map(function (t) {
+                return { n: t.points.length, p: t.progressIdx, done: t.done, rev: t.reversed };
+            })
+        };
+    } };
 
 })();
 
