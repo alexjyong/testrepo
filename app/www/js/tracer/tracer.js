@@ -5,6 +5,7 @@ const Tracer = (function () {
     var celebrationEl, celebrationTitle, celebrationMsg, celebrationMeaning;
     var playAgainBtn, celebrationBack;
     var promptBanner;
+    var streakBadge, streakCountEl;
     var confettiParts = [];
     var confettiCanvas = null;
 
@@ -36,6 +37,8 @@ const Tracer = (function () {
     var needsAnchor = false;
     var keepProgressOnLift = true;
     var enforceDirection = false;
+    var streakCount = 0;
+    var charTransition = null;
 
     var BASE_CHAR_SIZE = 100;
     var CHAR_GAP = 15;
@@ -69,6 +72,8 @@ const Tracer = (function () {
         playAgainBtn = document.getElementById('play-again-btn');
         celebrationBack = document.getElementById('celebration-back');
         promptBanner = document.getElementById('prompt-banner');
+        streakBadge = document.getElementById('streak-badge');
+        streakCountEl = document.getElementById('streak-count');
 
         if (canvas) {
             ctx = canvas.getContext('2d');
@@ -94,6 +99,7 @@ const Tracer = (function () {
         }
 
         window.addEventListener('resize', debounceResize);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
 
         loadSettings();
         resizeCanvas();
@@ -196,11 +202,17 @@ const Tracer = (function () {
         }
     }
 
-    function resetSession() {
+    function resetSession(alsoResetStreak) {
         successCount = 0;
         failureCount = 0;
         charactersTraced = [];
         progressFraction = 0;
+        // Streak survives "Play Again" (that's the motivation); only a
+        // failure or a mode/difficulty switch breaks it.
+        if (alsoResetStreak !== false) {
+            streakCount = 0;
+            updateStreakBadge();
+        }
     }
 
     function resizeCanvas() {
@@ -216,11 +228,29 @@ const Tracer = (function () {
     }
 
     function startRenderLoop() {
+        if (renderLoopId !== null) return;
         function frame() {
             render();
             renderLoopId = requestAnimationFrame(frame);
         }
-        frame();
+        renderLoopId = requestAnimationFrame(frame);
+    }
+
+    function stopRenderLoop() {
+        if (renderLoopId !== null) {
+            cancelAnimationFrame(renderLoopId);
+            renderLoopId = null;
+        }
+    }
+
+    function handleVisibilityChange() {
+        if (document.hidden) {
+            stopRenderLoop();
+        } else {
+            // Canvas may have been resized while hidden; force a clean frame.
+            resizeCanvas();
+            startRenderLoop();
+        }
     }
 
     function render() {
@@ -289,6 +319,23 @@ const Tracer = (function () {
     function drawAllCharacters() {
         var layouts = getCharLayout();
 
+        // New-character pop-in: brief scale+fade so the swap doesn't feel instant.
+        var animActive = false;
+        if (charTransition) {
+            var t = (performance.now() - charTransition.startTime) / charTransition.duration;
+            if (t >= 1) {
+                charTransition = null;
+            } else {
+                animActive = true;
+                var eased = easeOutBack(t);
+                ctx.save();
+                ctx.globalAlpha = Math.min(1, t * 2); // fade leads the scale
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.scale(eased, eased);
+                ctx.translate(-canvas.width / 2, -canvas.height / 2);
+            }
+        }
+
         for (var i = 0; i < layouts.length; i++) {
             var L = layouts[i];
             if (!L.pathData) continue;
@@ -337,6 +384,15 @@ const Tracer = (function () {
 
             ctx.restore();
         }
+
+        if (animActive) ctx.restore();
+    }
+
+    // Overshoot ease: grows past 1 then settles — playful "pop".
+    function easeOutBack(t) {
+        var c1 = 1.70158;
+        var c3 = c1 + 1;
+        return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
     }
 
     function drawTracedPrefix() {
@@ -691,6 +747,10 @@ const Tracer = (function () {
         return true;
     }
 
+    function isClosedStroke(tracker) {
+        return dist(tracker.points[0], tracker.points[tracker.points.length - 1]) <= getSpacingPx() * 2;
+    }
+
     function advanceMarch(tracker, pt, tol) {
         var look = getLookaheadCount(tol);
         var advancedTo = -1;
@@ -699,9 +759,12 @@ const Tracer = (function () {
             if (dist(pt, tracker.points[i]) <= tol) advancedTo = i;
         }
 
-        // Easy mode: if they just started at the shared endpoint of a closed
-        // loop (e.g. "0") and are moving the "wrong" way, flip direction.
-        if (advancedTo < 0 && !enforceDirection && tracker.progressIdx === 0) {
+        // If they've barely started and are moving the "wrong" way, flip
+        // direction. Stays self-correcting while progress <= look, so an
+        // accidental flip can always flip back. Closed loops ("0", "O") have
+        // no distinguishable start/end, so they allow this on any difficulty.
+        if (advancedTo < 0 && tracker.progressIdx <= look &&
+            (!enforceDirection || isClosedStroke(tracker))) {
             var n = tracker.points.length;
             for (var r = 1; r <= look; r++) {
                 if (dist(pt, tracker.points[n - 1 - r]) <= tol) {
@@ -1070,6 +1133,8 @@ const Tracer = (function () {
     function onSubCharFailure() {
         failureCount++;
         tracePoints = [];
+        streakCount = 0;
+        updateStreakBadge();
 
         if (typeof Sound !== 'undefined') {
             Sound.init();
@@ -1088,6 +1153,7 @@ const Tracer = (function () {
 
     function onFullCharacterSuccess() {
         successCount++;
+        streakCount++;
         charactersTraced.push({
             character: currentCharacter,
             success: true,
@@ -1096,15 +1162,44 @@ const Tracer = (function () {
             hintsUsed: hintsUsed
         });
 
+        updateStreakBadge(true);
+
         if (typeof Sound !== 'undefined') {
             Sound.celebrate();
             speakFullSuccess();
         }
 
+        // Milestone: every 5th consecutive success gets its own mini-party.
+        var isMilestone = (streakCount > 0 && streakCount % 5 === 0);
+        if (isMilestone) {
+            spawnConfetti();
+            if (typeof Sound !== 'undefined') {
+                setTimeout(function () {
+                    Sound.speak(streakCount + " in a row! You're on fire!");
+                }, 1200);
+            }
+        }
+
         if (charactersTraced.length >= charactersPerSet) {
             setTimeout(showCelebration, 500);
         } else {
-            setTimeout(loadNewCharacter, 800);
+            setTimeout(loadNewCharacter, isMilestone ? 1600 : 800);
+        }
+    }
+
+    function updateStreakBadge(pop) {
+        if (!streakBadge || !streakCountEl) return;
+        if (streakCount >= 2) {
+            streakCountEl.textContent = streakCount;
+            streakBadge.style.display = 'flex';
+            if (pop) {
+                // Restart the pop animation on each new success.
+                streakBadge.classList.remove('streak-pop');
+                void streakBadge.offsetWidth; // force reflow
+                streakBadge.classList.add('streak-pop');
+            }
+        } else {
+            streakBadge.style.display = 'none';
         }
     }
 
@@ -1223,6 +1318,7 @@ const Tracer = (function () {
 
         buildStrokeTrackers(false);
         updatePromptBanner();
+        charTransition = { startTime: performance.now(), duration: 350 };
 
         if (typeof Sound !== 'undefined') {
             setTimeout(function () { announceCharacter(); }, 300);
@@ -1356,7 +1452,7 @@ const Tracer = (function () {
     function playAgain() {
         hideCelebration();
         confettiParts = [];
-        resetSession();
+        resetSession(false); // keep the streak alive across sets
         loadNewCharacter();
     }
 
@@ -1381,6 +1477,10 @@ const Tracer = (function () {
         return {
             isTracing: isTracing,
             activeCharIndex: activeCharIndex,
+            activeChar: renderChars[activeCharIndex] || null,
+            renderChars: renderChars.slice(),
+            streakCount: streakCount,
+            transitionActive: charTransition !== null,
             currentStrokeIndex: currentStrokeIndex,
             tolerance: getTolerancePx(activeCharIndex),
             spacing: getSpacingPx(),
