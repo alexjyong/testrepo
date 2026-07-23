@@ -25,6 +25,7 @@ const Tracer = (function () {
     var charactersTraced = [];
     var charactersPerSet = 3;
     var tracingTolerance = 50;
+    var requiredCoverage = 0.9;
     var hintFrequency = 1;
     var showStrokeHints = true;
     var lastTouchTime = 0;
@@ -47,9 +48,9 @@ const Tracer = (function () {
     var MIN_TOLERANCE_PX = 24;
 
     var DIFFICULTY_CONFIG = {
-        "easy":   { tolerance: 20, setSize: 3, hintFrequency: 1, showHints: true,  keepProgressOnLift: true,  enforceDirection: false, maxWordLength: 3 },
-        "medium": { tolerance: 15, setSize: 5, hintFrequency: 1, showHints: false, keepProgressOnLift: false, enforceDirection: true,  maxWordLength: 5 },
-        "hard":   { tolerance: 10, setSize: 8, hintFrequency: 3, showHints: false, keepProgressOnLift: false, enforceDirection: true,  maxWordLength: 99 }
+        "easy":   { tolerance: 15, coverage: 0.90, setSize: 3, hintFrequency: 1, showHints: true,  keepProgressOnLift: true,  enforceDirection: false, maxWordLength: 3 },
+        "medium": { tolerance: 12, coverage: 0.95, setSize: 5, hintFrequency: 1, showHints: false, keepProgressOnLift: false, enforceDirection: true,  maxWordLength: 5 },
+        "hard":   { tolerance: 8,  coverage: 1.00, setSize: 8, hintFrequency: 3, showHints: false, keepProgressOnLift: false, enforceDirection: true,  maxWordLength: 99 }
     };
 
     var PRAISE_PHRASES = [
@@ -176,6 +177,7 @@ const Tracer = (function () {
     function applyDifficultyConfig() {
         var config = DIFFICULTY_CONFIG[currentDifficulty] || DIFFICULTY_CONFIG["easy"];
         tracingTolerance = config.tolerance;
+        requiredCoverage = config.coverage;
         charactersPerSet = config.setSize;
         hintFrequency = config.hintFrequency;
         showStrokeHints = config.showHints;
@@ -838,8 +840,8 @@ const Tracer = (function () {
             }
         }
 
-        // Done when the untraced tail is within one tolerance of the end.
-        var forgiven = Math.min(Math.round(tol / getSpacingPx()), Math.floor(tracker.points.length * 0.25));
+        // Done when the traced prefix reaches the difficulty's required coverage.
+        var forgiven = Math.floor(tracker.points.length * (1 - requiredCoverage));
         if (tracker.progressIdx >= Math.max(1, tracker.points.length - 1 - forgiven)) {
             completeStroke(tracker);
         }
